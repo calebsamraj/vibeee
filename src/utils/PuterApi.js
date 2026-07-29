@@ -1,5 +1,5 @@
 /**
- * Puter API utility with direct key calling and Puter keyless AI model fallbacks.
+ * Puter API utility: Frontend API adapter and client-side Puter keyless fallback.
  */
 
 // Helper to convert file to base64
@@ -15,10 +15,9 @@ function fileToBase64(file) {
   });
 }
 
-// Clean markdown tags and parse JSON
+// Clean markdown blocks and parse JSON
 function cleanAndParseJson(text) {
   let cleaned = text.trim();
-  // Remove markdown code block wrappers if present
   if (cleaned.startsWith('```')) {
     cleaned = cleaned.replace(/^```(json)?/, '');
   }
@@ -35,151 +34,7 @@ function cleanAndParseJson(text) {
   }
 }
 
-// Direct Groq call with custom key
-async function queryGroqModelDirect(base64Data, mimeType, apiKey, prompt) {
-  const url = 'https://api.groq.com/openai/v1/chat/completions';
-  const requestBody = {
-    model: "llama-3.2-11b-vision-preview",
-    messages: [
-      {
-        role: "user",
-        content: [
-          {
-            type: "text",
-            text: prompt
-          },
-          {
-            type: "image_url",
-            image_url: {
-              url: `data:${mimeType};base64,${base64Data}`
-            }
-          }
-        ]
-      }
-    ],
-    response_format: { type: "json_object" },
-    temperature: 0.7
-  };
-
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${apiKey}`
-    },
-    body: JSON.stringify(requestBody)
-  });
-
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`Groq API error: ${response.status} - ${errText}`);
-  }
-
-  const result = await response.json();
-  const textContent = result.choices?.[0]?.message?.content;
-  if (!textContent) {
-    throw new Error("No response content from Groq API");
-  }
-
-  return cleanAndParseJson(textContent);
-}
-
-// Direct Gemini call with custom key
-async function queryGeminiModelDirect(base64Data, mimeType, apiKey, prompt) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-  const requestBody = {
-    contents: [
-      {
-        parts: [
-          { text: prompt },
-          {
-            inlineData: {
-              mimeType: mimeType,
-              data: base64Data
-            }
-          }
-        ]
-      }
-    ],
-    generationConfig: {
-      responseMimeType: "application/json"
-    }
-  };
-
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(requestBody)
-  });
-
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`Gemini API error: ${response.status} - ${errText}`);
-  }
-
-  const result = await response.json();
-  const textContent = result.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!textContent) {
-    throw new Error("No response content from Gemini API");
-  }
-
-  return cleanAndParseJson(textContent);
-}
-
-// Direct OpenRouter Free Call
-async function queryOpenRouterModelDirect(base64Data, mimeType, apiKey, prompt) {
-  const url = 'https://openrouter.ai/api/v1/chat/completions';
-  const requestBody = {
-    model: "meta-llama/llama-3.2-11b-vision-instruct:free",
-    messages: [
-      {
-        role: "user",
-        content: [
-          {
-            type: "text",
-            text: prompt
-          },
-          {
-            type: "image_url",
-            image_url: {
-              url: `data:${mimeType};base64,${base64Data}`
-            }
-          }
-        ]
-      }
-    ],
-    response_format: { type: "json_object" },
-    temperature: 0.7
-  };
-
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${apiKey}`,
-      "HTTP-Referer": window.location.origin,
-      "X-Title": "VibeLens"
-    },
-    body: JSON.stringify(requestBody)
-  });
-
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`OpenRouter API error: ${response.status} - ${errText}`);
-  }
-
-  const result = await response.json();
-  const textContent = result.choices?.[0]?.message?.content;
-  if (!textContent) {
-    throw new Error("No response content from OpenRouter API");
-  }
-
-  return cleanAndParseJson(textContent);
-}
-
-// Puter keyless call
+// Browser-side keyless Puter call
 async function queryPuterModel(dataUrl, prompt, modelName) {
   if (!window.puter) {
     throw new Error("Puter SDK is not loaded. Make sure the script is loaded.");
@@ -211,12 +66,10 @@ async function queryPuterModel(dataUrl, prompt, modelName) {
   return text;
 }
 
-// Main exported fallback logic
-export async function queryWithFallback(imageFile, customKey, options, onStatusChange) {
-  const base64Data = await fileToBase64(imageFile);
-  const mimeType = imageFile.type || 'image/jpeg';
+// Client-side keyless Puter fallback chain
+async function runClientSidePuterFallback(base64Data, mimeType, options, onStatusChange) {
   const dataUrl = `data:${mimeType};base64,${base64Data}`;
-
+  
   const selectedCaptionLangs = [];
   if (options.captionsEnglish) selectedCaptionLangs.push("English");
   if (options.captionsTamil) selectedCaptionLangs.push("Tamil");
@@ -236,94 +89,20 @@ export async function queryWithFallback(imageFile, customKey, options, onStatusC
 
 Ensure that your response conforms strictly to this JSON format and contains nothing else (no markdown wrappers like \`\`\`json, just raw JSON text):
 {
-  "captionsEnglish": ["caption 1", "caption 2", "caption 3"], // Populate ONLY if English is selected, otherwise empty array
-  "captionsTamil": ["caption 1", "caption 2", "caption 3"],   // Populate ONLY if Tamil is selected, otherwise empty array
+  "captionsEnglish": ["caption 1", "caption 2", "caption 3"],
+  "captionsTamil": ["caption 1", "caption 2", "caption 3"],
   "hashtags": ["#tag1", "#tag2", ...],
-  "songsTamil": ["Song Title - Artist", ...],                  // Populate ONLY if Tamil is selected, otherwise empty array
-  "songsEnglish": ["Song Title - Artist", ...],                // Populate ONLY if English is selected, otherwise empty array
-  "songsHindi": ["Song Title - Artist", ...],                  // Populate ONLY if Hindi is selected, otherwise empty array
-  "songsTamilChristian": ["Song Title - Artist", ...]          // Populate ONLY if Tamil Christian is selected, otherwise empty array
+  "songsTamil": ["Song Title - Artist", ...],
+  "songsEnglish": ["Song Title - Artist", ...],
+  "songsHindi": ["Song Title - Artist", ...],
+  "songsTamilChristian": ["Song Title - Artist", ...]
 }`;
-
-  // Read environment API keys
-  const geminiKey = import.meta.env.VITE_GEMINI_API_KEY;
-  const groqKey = import.meta.env.VITE_GROQ_API_KEY;
-  const openrouterKey = import.meta.env.VITE_OPENROUTER_API_KEY;
-
-  // Build Primary API Checklist
-  const primaryApis = [];
-
-  // If a custom key is passed, prioritize it first
-  if (customKey && customKey.trim()) {
-    const key = customKey.trim();
-    if (key.startsWith('gsk_')) {
-      primaryApis.push({
-        name: 'Custom Groq API Key',
-        fn: () => queryGroqModelDirect(base64Data, mimeType, key, systemPrompt)
-      });
-    } else if (key.startsWith('sk-or-')) {
-      primaryApis.push({
-        name: 'Custom OpenRouter API Key',
-        fn: () => queryOpenRouterModelDirect(base64Data, mimeType, key, systemPrompt)
-      });
-    } else {
-      primaryApis.push({
-        name: 'Custom Gemini API Key',
-        fn: () => queryGeminiModelDirect(base64Data, mimeType, key, systemPrompt)
-      });
-    }
-  }
-
-  // Append standard env keys in preference order (Gemini -> Groq -> OpenRouter Free)
-  if (geminiKey && geminiKey.trim()) {
-    primaryApis.push({
-      name: 'Gemini API (Primary)',
-      fn: () => queryGeminiModelDirect(base64Data, mimeType, geminiKey.trim(), systemPrompt)
-    });
-  }
-
-  if (groqKey && groqKey.trim()) {
-    primaryApis.push({
-      name: 'Groq API (Secondary)',
-      fn: () => queryGroqModelDirect(base64Data, mimeType, groqKey.trim(), systemPrompt)
-    });
-  }
-
-  if (openrouterKey && openrouterKey.trim()) {
-    primaryApis.push({
-      name: 'OpenRouter Free API (Tertiary)',
-      fn: () => queryOpenRouterModelDirect(base64Data, mimeType, openrouterKey.trim(), systemPrompt)
-    });
-  }
-
-  // 1. Run through Primary APIs
-  for (const api of primaryApis) {
-    try {
-      if (onStatusChange) onStatusChange(`Analyzing with ${api.name}...`);
-      const result = await api.fn();
-      if (result) {
-        return result;
-      }
-    } catch (e) {
-      console.warn(`${api.name} failed:`, e);
-    }
-  }
-
-  // 2. Puter Keyless Fallback Chain (only runs if primary keys fail/exhausted or not provided)
-  if (onStatusChange) {
-    if (primaryApis.length > 0) {
-      onStatusChange("Primary API limits exhausted. Switching to Puter...");
-    } else {
-      onStatusChange("No Primary API keys configured. Using Puter...");
-    }
-  }
 
   const fallbackModels = [
     { provider: 'Gemini 3.6', name: 'gemini-3.6-flash' },
     { provider: 'Gemini 3.5', name: 'gemini-3.5-flash' },
     { provider: 'OpenAI GPT-4o', name: 'gpt-4o-mini' },
-    { provider: 'Kimi K3', name: 'moonshotai/kimi-k3' },
-    { provider: 'OpenAI GPT-5.6', name: 'gpt-5.6-luna' }
+    { provider: 'Kimi K3', name: 'moonshotai/kimi-k3' }
   ];
 
   let lastError = null;
@@ -340,5 +119,61 @@ Ensure that your response conforms strictly to this JSON format and contains not
     }
   }
 
-  throw new Error(`All models in fallback chain failed. Last error: ${lastError?.message || 'Unknown error'}`);
+  throw new Error(lastError?.message || "Puter fallback failed");
+}
+
+// Main exported adapter that delegates to the backend proxy
+export async function queryWithFallback(imageFile, customKey, options, onStatusChange) {
+  const base64Data = await fileToBase64(imageFile);
+  const mimeType = imageFile.type || 'image/jpeg';
+
+  try {
+    if (onStatusChange) onStatusChange("Connecting to VibeLens server...");
+    
+    const response = await fetch('/api/curate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        image: base64Data,
+        mimeType,
+        options
+      })
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data.success) {
+        return data.result;
+      }
+      
+      // Backend returned error or explicitly instructed client-side Puter fallback
+      if (data.usePuterFallback) {
+        if (onStatusChange) onStatusChange("Primary API limits exhausted. Running final fallback...");
+        return await runClientSidePuterFallback(base64Data, mimeType, options, onStatusChange);
+      }
+      throw new Error(data.message || "Server processed request but failed to return result");
+    } else {
+      const errText = await response.text();
+      let errData = {};
+      try { errData = JSON.parse(errText); } catch(e) {}
+      
+      if (errData.usePuterFallback) {
+        if (onStatusChange) onStatusChange("Primary API limits exhausted. Running final fallback...");
+        return await runClientSidePuterFallback(base64Data, mimeType, options, onStatusChange);
+      }
+      throw new Error(`Server returned error status ${response.status}: ${errData.message || errText}`);
+    }
+  } catch (e) {
+    console.warn("Primary API pipeline failed. Attempting browser-side Puter.js fallback:", e);
+    // If backend connection fails entirely, try client-side Puter as last resort
+    try {
+      if (onStatusChange) onStatusChange("Connection limits reached. Running final fallback...");
+      return await runClientSidePuterFallback(base64Data, mimeType, options, onStatusChange);
+    } catch (puterErr) {
+      console.error("All AI curation pipelines failed:", puterErr);
+      throw new Error("Free AI usage is temporarily unavailable. Please try again later.");
+    }
+  }
 }
