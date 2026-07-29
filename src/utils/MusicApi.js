@@ -1,7 +1,46 @@
 /**
  * Music Search Utility using iTunes Search API.
  * Provides public, keyless access to song preview URLs and official artwork.
+ * Uses JSONP to bypass CORS and Cross-Site Tracking Prevention on mobile iOS Safari and Android.
  */
+
+function jsonpFetch(url) {
+  return new Promise((resolve, reject) => {
+    const callbackName = 'itunes_jsonp_' + Math.round(100000 * Math.random());
+    let timeoutId;
+
+    window[callbackName] = (data) => {
+      clearTimeout(timeoutId);
+      cleanup();
+      resolve(data);
+    };
+
+    const script = document.createElement('script');
+    script.src = `${url}&callback=${callbackName}`;
+    script.async = true;
+
+    const cleanup = () => {
+      delete window[callbackName];
+      if (script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
+    };
+
+    script.onerror = (err) => {
+      clearTimeout(timeoutId);
+      cleanup();
+      reject(new Error("Script loading error"));
+    };
+
+    // Timeout fallback (6 seconds)
+    timeoutId = setTimeout(() => {
+      cleanup();
+      reject(new Error("Request timeout"));
+    }, 6000);
+
+    document.body.appendChild(script);
+  });
+}
 
 export async function fetchSongDetails(songString) {
   try {
@@ -12,13 +51,9 @@ export async function fetchSongDetails(songString) {
       .trim();
 
     const url = `https://itunes.apple.com/search?term=${encodeURIComponent(cleanTerm)}&media=music&limit=1`;
-    const response = await fetch(url);
     
-    if (!response.ok) {
-      throw new Error(`iTunes Search failed with status: ${response.status}`);
-    }
-
-    const data = await response.json();
+    // Request via JSONP to fully bypass CORS/tracking limits on iOS and Android
+    const data = await jsonpFetch(url);
     
     if (data.results && data.results.length > 0) {
       const track = data.results[0];
@@ -37,7 +72,7 @@ export async function fetchSongDetails(songString) {
       };
     }
   } catch (error) {
-    console.warn(`Failed to fetch iTunes preview for: "${songString}"`, error);
+    console.warn(`Failed to fetch iTunes preview via JSONP for: "${songString}"`, error);
   }
 
   // Graceful fallback values
