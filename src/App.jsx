@@ -265,26 +265,35 @@ export default function App() {
       setBgMusicPlaying(false);
     }
 
-    if (!audioRef.current) {
-      audioRef.current = new Audio(previewUrl);
-      audioRef.current.onended = () => {
-        setPlayingTrackUrl(null);
-      };
+    // Clicked on the currently playing track -> Pause it
+    if (playingTrackUrl === previewUrl) {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      setPlayingTrackUrl(null);
+      return;
     }
 
-    if (playingTrackUrl === previewUrl) {
+    // Stop any previously playing track preview
+    if (audioRef.current) {
       audioRef.current.pause();
-      setPlayingTrackUrl(null);
-    } else {
-      audioRef.current.pause();
-      audioRef.current.src = previewUrl;
-      audioRef.current.load();
-      audioRef.current.play().catch(e => {
-        console.warn("Playback blocked by browser autoplay rules:", e);
-        showToast("Audio playback blocked. Interact with the page to play.", "warning");
-      });
-      setPlayingTrackUrl(previewUrl);
     }
+
+    // Create a fresh Audio object on click to bypass iOS Safari autoplay security blocks
+    const newAudio = new Audio(previewUrl);
+    newAudio.onended = () => {
+      setPlayingTrackUrl(null);
+    };
+
+    newAudio.play().then(() => {
+      setPlayingTrackUrl(previewUrl);
+    }).catch(e => {
+      console.warn("Playback blocked by browser autoplay rules:", e);
+      showToast("Audio playback blocked. Tap the screen to play.", "warning");
+      setPlayingTrackUrl(null);
+    });
+
+    audioRef.current = newAudio;
   };
 
   const copyToClipboard = (text, type, index = null) => {
@@ -321,7 +330,7 @@ export default function App() {
           isCurrentPlaying ? 'border-cyan-500/40 bg-cyan-950/5' : 'border-white/5 hover:border-cyan-500/20'
         }`}
       >
-        <div className="flex items-center gap-3.5 min-w-0">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
           {/* Album artwork container */}
           <div 
             onClick={() => hasPreview && togglePlay(meta.previewUrl)}
@@ -363,7 +372,7 @@ export default function App() {
             )}
           </div>
           
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className={`text-sm font-semibold truncate transition-colors ${
               isCurrentPlaying ? 'text-cyan-300' : 'text-slate-200 group-hover/song:text-cyan-300'
             }`}>
