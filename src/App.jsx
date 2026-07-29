@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { queryWithFallback } from './utils/PuterApi';
 import { fetchSongDetails } from './utils/MusicApi';
+import ThreeBackground from './components/ThreeBackground';
 import Toast from './components/Toast';
 
 const SAMPLE_IMAGES = [
@@ -367,6 +368,8 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col items-center px-4 py-8 md:px-8 max-w-7xl mx-auto w-full relative">
+      {/* 3D Background */}
+      <ThreeBackground />
       {/* Background Glow Orbs */}
       <div className="absolute top-[-10%] left-[-10%] w-[40vw] h-[40vw] rounded-full bg-cyan-900/10 blur-[120px] pointer-events-none animate-pulse-soft"></div>
       <div className="absolute bottom-[10%] right-[-10%] w-[40vw] h-[40vw] rounded-full bg-teal-900/10 blur-[120px] pointer-events-none animate-pulse-soft" style={{ animationDelay: '1.5s' }}></div>
