@@ -283,11 +283,12 @@ Ensure that your response conforms strictly to this JSON format and contains not
     }
   }
 
-  // 2. Exhausted standard API fallback -> Return 503 Service Unavailable
-  console.warn(`[VibeLens Server] All free AI keys exhausted/failed.`);
-  return res.status(503).json({ 
+  // 2. Exhausted standard API fallback -> trigger client-side Puter.js fallback
+  console.warn(`[VibeLens Server] All primary AI keys exhausted/failed. Requesting client-side Puter fallback.`);
+  return res.json({ 
     success: false, 
-    message: "Free AI usage is temporarily unavailable. Please try again later." 
+    usePuterFallback: true, 
+    message: "Primary free AI APIs are exhausted or rate-limited. Falling back to browser-side Puter.js..." 
   });
 });
 
