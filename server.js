@@ -171,7 +171,6 @@ async function callOpenRouter(base64Data, mimeType, apiKey, prompt) {
         ]
       }
     ],
-    response_format: { type: "json_object" },
     temperature: 0.7
   };
 
