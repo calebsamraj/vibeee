@@ -180,7 +180,7 @@ export async function queryWithFallback(imageFile, customKey, options, onStatusC
    Generate 3 highly creative, engaging, and different styles of social media captions or quotes (e.g., one witty, one poetic/quote, one direct/engaging) in that language.
 2. 5-8 relevant, trending hashtags (including standard ones and some specific to the vibe of the image).
 3. For each selected language for songs (${selectedSongLangs.join(', ')}):
-   Generate 2-3 song recommendations (Format: "Song Title - Artist") matching the mood, tone, or setting of the image.
+   Generate 2-3 song recommendations (Format: "Song Title - Artist") that specifically match the background vibe, visual atmosphere, setting, and aesthetic tone of the image (for example, if the background has cyberpunk/neon elements, recommend synthwave/electronic music; if it is a cozy indoor cafe setting, recommend lofi/acoustic/jazz; if it is an outdoor nature/sunset setting, recommend ambient/chill/indie music).
 
 Ensure that your response conforms strictly to this JSON format and contains nothing else (no markdown wrappers like \`\`\`json, just raw JSON text):
 {

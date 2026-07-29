@@ -53,6 +53,7 @@ export default function App() {
   
   const [songMetadata, setSongMetadata] = useState({});
   const [playingTrackUrl, setPlayingTrackUrl] = useState(null);
+  const [bgMusicPlaying, setBgMusicPlaying] = useState(false);
   
   const [toast, setToast] = useState(null);
   const [copiedCaptionIndex, setCopiedCaptionIndex] = useState(null);
@@ -61,6 +62,7 @@ export default function App() {
   const fileInputRef = useRef(null);
   const dragRef = useRef(null);
   const audioRef = useRef(null);
+  const bgAudioRef = useRef(null);
 
   // Clean up audio on unmount
   useEffect(() => {
@@ -68,8 +70,37 @@ export default function App() {
       if (audioRef.current) {
         audioRef.current.pause();
       }
+      if (bgAudioRef.current) {
+        bgAudioRef.current.pause();
+      }
     };
   }, []);
+
+  const toggleBgMusic = () => {
+    if (!bgAudioRef.current) {
+      bgAudioRef.current = new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3');
+      bgAudioRef.current.loop = true;
+      bgAudioRef.current.volume = 0.2; // Keep it subtle
+      bgAudioRef.current.onplay = () => setBgMusicPlaying(true);
+      bgAudioRef.current.onpause = () => setBgMusicPlaying(false);
+    }
+
+    if (bgMusicPlaying) {
+      bgAudioRef.current.pause();
+      setBgMusicPlaying(false);
+    } else {
+      // Pause any playing preview track
+      if (audioRef.current) {
+        audioRef.current.pause();
+        setPlayingTrackUrl(null);
+      }
+      bgAudioRef.current.play().catch(e => {
+        console.warn("BG audio play blocked:", e);
+        showToast("Audio playback blocked. Interact with the page first.", "warning");
+      });
+      setBgMusicPlaying(true);
+    }
+  };
   
   const showToast = (message, type = 'error') => {
     setToast({ message, type });
@@ -227,6 +258,12 @@ export default function App() {
 
   const togglePlay = (previewUrl) => {
     if (!previewUrl) return;
+
+    // Pause ambient background music if playing
+    if (bgAudioRef.current && !bgAudioRef.current.paused) {
+      bgAudioRef.current.pause();
+      setBgMusicPlaying(false);
+    }
 
     if (!audioRef.current) {
       audioRef.current = new Audio(previewUrl);
@@ -396,6 +433,18 @@ export default function App() {
             AI Image Captioner, Hashtag Generator & Cross-Language Music Curator (Powered by Free Puter Fallbacks)
           </p>
         </div>
+
+        <button
+          onClick={toggleBgMusic}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-semibold transition-all active:scale-95 cursor-pointer shadow-lg ${
+            bgMusicPlaying
+              ? 'bg-cyan-950/40 border-cyan-500/30 text-cyan-400 shadow-cyan-900/10'
+              : 'bg-slate-900 border-slate-800 text-slate-300 hover:text-cyan-400 hover:border-cyan-500/20'
+          }`}
+        >
+          <Music className={`w-4 h-4 ${bgMusicPlaying ? 'animate-bounce' : ''}`} />
+          {bgMusicPlaying ? 'Stop Ambient Music' : 'Play Ambient Music'}
+        </button>
       </header>
 
       {/* Main Grid Area */}
