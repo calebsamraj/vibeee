@@ -174,13 +174,14 @@ export async function queryWithFallback(imageFile, customKey, options, onStatusC
   if (options.songsTamil) selectedSongLangs.push("Tamil");
   if (options.songsEnglish) selectedSongLangs.push("English");
   if (options.songsHindi) selectedSongLangs.push("Hindi");
+  if (options.songsTamilChristian) selectedSongLangs.push("Tamil Christian");
 
   const systemPrompt = `You are a social media and music curation expert. Your task is to analyze the provided image and generate:
 1. For each selected language for captions/quotes (${selectedCaptionLangs.join(', ')}):
    Generate 3 highly creative, engaging, and different styles of social media captions or quotes (e.g., one witty, one poetic/quote, one direct/engaging) in that language.
 2. 5-8 relevant, trending hashtags (including standard ones and some specific to the vibe of the image).
 3. For each selected language for songs (${selectedSongLangs.join(', ')}):
-   Generate 2-3 song recommendations (Format: "Song Title - Artist") that specifically match the background vibe, visual atmosphere, setting, and aesthetic tone of the image (for example, if the background has cyberpunk/neon elements, recommend synthwave/electronic music; if it is a cozy indoor cafe setting, recommend lofi/acoustic/jazz; if it is an outdoor nature/sunset setting, recommend ambient/chill/indie music).
+   Generate 2-3 song recommendations (Format: "Song Title - Artist") that specifically match the background vibe, visual atmosphere, setting, and aesthetic tone of the image (for example, if the background has cyberpunk/neon elements, recommend synthwave/electronic music; if it is a cozy indoor cafe setting, recommend lofi/acoustic/jazz; if it is an outdoor nature/sunset setting, recommend ambient/chill/indie music). If "Tamil Christian" is selected, recommend Christian worship/devotional songs in Tamil that match the serene, grateful, peaceful, or spiritual vibe of the setting.
 
 Ensure that your response conforms strictly to this JSON format and contains nothing else (no markdown wrappers like \`\`\`json, just raw JSON text):
 {
@@ -189,7 +190,8 @@ Ensure that your response conforms strictly to this JSON format and contains not
   "hashtags": ["#tag1", "#tag2", ...],
   "songsTamil": ["Song Title - Artist", ...],                  // Populate ONLY if Tamil is selected, otherwise empty array
   "songsEnglish": ["Song Title - Artist", ...],                // Populate ONLY if English is selected, otherwise empty array
-  "songsHindi": ["Song Title - Artist", ...]                  // Populate ONLY if Hindi is selected, otherwise empty array
+  "songsHindi": ["Song Title - Artist", ...],                  // Populate ONLY if Hindi is selected, otherwise empty array
+  "songsTamilChristian": ["Song Title - Artist", ...]          // Populate ONLY if Tamil Christian is selected, otherwise empty array
 }`;
 
   // 1. Try standard key-based API calls if customKey is provided

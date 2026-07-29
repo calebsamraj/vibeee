@@ -48,7 +48,8 @@ export default function App() {
     captionsTamil: true,
     songsTamil: true,
     songsEnglish: true,
-    songsHindi: true
+    songsHindi: true,
+    songsTamilChristian: true
   });
   
   const [songMetadata, setSongMetadata] = useState({});
@@ -240,7 +241,8 @@ export default function App() {
       const songsList = [
         ...(curatedData.songsTamil || []),
         ...(curatedData.songsEnglish || []),
-        ...(curatedData.songsHindi || [])
+        ...(curatedData.songsHindi || []),
+        ...(curatedData.songsTamilChristian || [])
       ];
 
       const metadataDict = {};
@@ -640,7 +642,7 @@ export default function App() {
                 </div>
 
                 <div>
-                  <span className="text-xs text-slate-400 font-medium block mb-2">Song Playlists Language:</span>
+                  <span className="text-xs text-slate-400 font-medium block mb-2">Song Playlists Language / Category:</span>
                   <div className="flex flex-wrap gap-4">
                     <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
                       <input 
@@ -650,6 +652,15 @@ export default function App() {
                         className="rounded border-slate-700 text-cyan-500 focus:ring-cyan-500/20 bg-slate-900 w-4 h-4 cursor-pointer"
                       />
                       Tamil
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={options.songsTamilChristian}
+                        onChange={(e) => setOptions({ ...options, songsTamilChristian: e.target.checked })}
+                        className="rounded border-slate-700 text-cyan-500 focus:ring-cyan-500/20 bg-slate-900 w-4 h-4 cursor-pointer"
+                      />
+                      Tamil Christian
                     </label>
                     <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
                       <input 
@@ -867,6 +878,25 @@ export default function App() {
                     
                     <div className="flex flex-col gap-3">
                       {results.songsTamil.map((song, idx) => renderSongItem(song, idx))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Tamil Christian Songs Playlist */}
+                {options.songsTamilChristian && results.songsTamilChristian && results.songsTamilChristian.length > 0 && (
+                  <div className="glass-panel p-6 rounded-3xl flex flex-col gap-4 border-l-2 border-l-emerald-500/40">
+                    <h3 className="text-base font-bold text-slate-200 flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <Music className="w-5 h-5 text-emerald-400" />
+                        Tamil Christian Curations
+                      </span>
+                      <span className="text-[10px] uppercase font-bold text-emerald-400 tracking-wider bg-emerald-950/30 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                        Christian (Tamil)
+                      </span>
+                    </h3>
+                    
+                    <div className="flex flex-col gap-3">
+                      {results.songsTamilChristian.map((song, idx) => renderSongItem(song, idx))}
                     </div>
                   </div>
                 )}
