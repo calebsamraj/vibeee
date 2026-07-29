@@ -242,6 +242,13 @@ Ensure that your response conforms strictly to this JSON format and contains not
 
   const providers = [];
   
+  if (openrouterKey && openrouterKey.trim()) {
+    providers.push({
+      name: "OpenRouter Free API",
+      fn: () => callOpenRouter(image, mimeType || "image/jpeg", openrouterKey.trim(), systemPrompt)
+    });
+  }
+
   if (geminiKey && geminiKey.trim()) {
     providers.push({
       name: "Gemini Free API",
@@ -253,13 +260,6 @@ Ensure that your response conforms strictly to this JSON format and contains not
     providers.push({
       name: "Groq Free API",
       fn: () => callGroq(image, mimeType || "image/jpeg", groqKey.trim(), systemPrompt)
-    });
-  }
-
-  if (openrouterKey && openrouterKey.trim()) {
-    providers.push({
-      name: "OpenRouter Free API",
-      fn: () => callOpenRouter(image, mimeType || "image/jpeg", openrouterKey.trim(), systemPrompt)
     });
   }
 
