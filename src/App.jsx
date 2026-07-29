@@ -55,6 +55,7 @@ export default function App() {
   const [songMetadata, setSongMetadata] = useState({});
   const [playingTrackUrl, setPlayingTrackUrl] = useState(null);
   const [bgMusicPlaying, setBgMusicPlaying] = useState(false);
+  const [activeYoutubeSong, setActiveYoutubeSong] = useState(null);
   
   const [toast, setToast] = useState(null);
   const [copiedCaptionIndex, setCopiedCaptionIndex] = useState(null);
@@ -111,6 +112,28 @@ export default function App() {
     }
   };
   
+  const playYoutubeSong = (song) => {
+    // Pause any active preview audio
+    if (audioRef.current) {
+      audioRef.current.pause();
+      setPlayingTrackUrl(null);
+    }
+    // Pause ambient background music
+    if (bgAudioRef.current) {
+      bgAudioRef.current.pause();
+      setBgMusicPlaying(false);
+    }
+    setActiveYoutubeSong(song);
+  };
+
+  const handlePreviewClick = (song, meta) => {
+    if (meta.previewUrl) {
+      togglePlay(meta.previewUrl);
+    } else {
+      playYoutubeSong(song);
+    }
+  };
+
   const showToast = (message, type = 'error') => {
     setToast({ message, type });
   };
@@ -286,8 +309,12 @@ export default function App() {
       return;
     }
 
-    // Stop any previously playing track preview
+    // Stop any previously playing track preview and completely flush WebKit buffer to prevent overlap
     audio.pause();
+    audio.src = '';
+    audio.load();
+    
+    // Set new source
     audio.src = previewUrl;
     audio.load();
 
@@ -347,10 +374,8 @@ export default function App() {
         <div className="flex items-center gap-3 min-w-0 flex-1">
           {/* Album artwork container */}
           <div 
-            onClick={() => hasPreview && togglePlay(meta.previewUrl)}
-            className={`w-12 h-12 rounded-xl border border-white/5 flex items-center justify-center shrink-0 relative overflow-hidden group-hover/song:shadow-md transition-all duration-300 ${
-              hasPreview ? 'cursor-pointer' : ''
-            } ${
+            onClick={() => handlePreviewClick(song, meta)}
+            className={`w-12 h-12 rounded-xl border border-white/5 flex items-center justify-center shrink-0 relative overflow-hidden group-hover/song:shadow-md transition-all duration-300 cursor-pointer ${
               isCurrentPlaying ? 'shadow-lg shadow-cyan-500/20 border-cyan-500/30' : ''
             }`}
           >
@@ -369,21 +394,19 @@ export default function App() {
             )}
             
             {/* Play/Pause overlay */}
-            {hasPreview && (
-              <div className={`absolute inset-0 bg-black/50 flex items-center justify-center transition-opacity duration-300 ${
-                isCurrentPlaying ? 'opacity-100' : 'opacity-0 group-hover/song:opacity-100'
-              }`}>
-                {isCurrentPlaying ? (
-                  <div className="flex gap-0.5 items-end justify-center w-5 h-5">
-                    <span className="w-0.75 bg-cyan-400 animate-[bounce_0.8s_infinite_100ms] h-3"></span>
-                    <span className="w-0.75 bg-cyan-400 animate-[bounce_0.8s_infinite_300ms] h-4"></span>
-                    <span className="w-0.75 bg-cyan-400 animate-[bounce_0.8s_infinite_200ms] h-2.5"></span>
-                  </div>
-                ) : (
-                  <Play className="w-4 h-4 fill-cyan-400 text-cyan-400" />
-                )}
-              </div>
-            )}
+            <div className={`absolute inset-0 bg-black/50 flex items-center justify-center transition-opacity duration-300 ${
+              isCurrentPlaying ? 'opacity-100' : 'opacity-0 group-hover/song:opacity-100'
+            }`}>
+              {isCurrentPlaying ? (
+                <div className="flex gap-0.5 items-end justify-center w-5 h-5">
+                  <span className="w-0.75 bg-cyan-400 animate-[bounce_0.8s_infinite_100ms] h-3"></span>
+                  <span className="w-0.75 bg-cyan-400 animate-[bounce_0.8s_infinite_300ms] h-4"></span>
+                  <span className="w-0.75 bg-cyan-400 animate-[bounce_0.8s_infinite_200ms] h-2.5"></span>
+                </div>
+              ) : (
+                <Play className="w-4 h-4 fill-cyan-400 text-cyan-400" />
+              )}
+            </div>
           </div>
           
           <div className="min-w-0 flex-1">
@@ -399,28 +422,25 @@ export default function App() {
         </div>
 
         <div className="flex items-center gap-2">
-          {hasPreview && (
-            <button
-              onClick={() => togglePlay(meta.previewUrl)}
-              className={`h-10 px-3 md:px-4 rounded-xl border transition-all text-xs font-semibold cursor-pointer flex items-center justify-center ${
-                isCurrentPlaying 
-                  ? 'bg-cyan-950/40 border-cyan-500/30 text-cyan-400' 
-                  : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-cyan-400 hover:border-cyan-500/30'
-              }`}
-              title={isCurrentPlaying ? "Pause Preview" : "Play Preview"}
-            >
-              {isCurrentPlaying ? "Pause" : "Preview"}
-            </button>
-          )}
-          <a 
-            href={meta.trackViewUrl || `https://www.youtube.com/results?search_query=${encodeURIComponent(song)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 hover:border-cyan-500/30 text-slate-400 hover:text-cyan-400 transition-colors shrink-0 flex items-center justify-center"
-            title={meta.trackViewUrl ? "Listen on Apple Music" : "Listen on YouTube"}
+          <button
+            onClick={() => handlePreviewClick(song, meta)}
+            className={`h-10 px-3 md:px-4 rounded-xl border transition-all text-xs font-semibold cursor-pointer flex items-center justify-center ${
+              isCurrentPlaying 
+                ? 'bg-cyan-950/40 border-cyan-500/30 text-cyan-400' 
+                : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-cyan-400 hover:border-cyan-500/30'
+            }`}
+            title={isCurrentPlaying ? "Pause Preview" : (meta.previewUrl ? "Play Preview" : "Play Video")}
+          >
+            {isCurrentPlaying ? "Pause" : (meta.previewUrl ? "Preview" : "Play Video")}
+          </button>
+
+          <button 
+            onClick={() => playYoutubeSong(song)}
+            className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 hover:border-cyan-500/30 text-slate-400 hover:text-cyan-400 transition-colors shrink-0 flex items-center justify-center cursor-pointer"
+            title="Play Video Inside Web"
           >
             <Play className="w-3.5 h-3.5 fill-current" />
-          </a>
+          </button>
         </div>
       </div>
     );
@@ -446,6 +466,39 @@ export default function App() {
         onPlay={() => setBgMusicPlaying(true)}
         onPause={() => setBgMusicPlaying(false)}
       />
+
+      {/* YouTube Video Player Modal */}
+      {activeYoutubeSong && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-2xl p-6 flex flex-col gap-4 relative shadow-2xl">
+            <div className="flex justify-between items-center">
+              <div className="min-w-0">
+                <h4 className="text-sm font-bold text-slate-100 truncate">Playing Video</h4>
+                <p className="text-xs text-cyan-400 truncate mt-0.5">{activeYoutubeSong}</p>
+              </div>
+              <button 
+                onClick={() => setActiveYoutubeSong(null)}
+                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 transition-all cursor-pointer font-bold text-xs"
+              >
+                Close
+              </button>
+            </div>
+            
+            <div className="relative rounded-2xl overflow-hidden bg-black aspect-video border border-white/5 shadow-inner">
+              <iframe
+                src={`https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(activeYoutubeSong)}&autoplay=1`}
+                className="absolute inset-0 w-full h-full border-0"
+                allow="autoplay; encrypted-media"
+                allowFullScreen
+                title="Song Player"
+              ></iframe>
+            </div>
+            <p className="text-[10px] text-slate-500 text-center">
+              Using YouTube Embed Search Player. Plays matching video inside VibeLens.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Background Glow Orbs */}
       <div className="absolute top-[-10%] left-[-10%] w-[40vw] h-[40vw] rounded-full bg-cyan-900/10 blur-[120px] pointer-events-none animate-pulse-soft"></div>

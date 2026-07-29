@@ -43,25 +43,57 @@ function jsonpFetch(url) {
   });
 }
 
-async function queryITunes(term) {
+function verifyMatch(track, songString) {
+  const parts = songString.split('-');
+  const expectedTitle = parts[0] ? parts[0].trim().toLowerCase() : '';
+  const expectedArtist = parts[1] ? parts[1].trim().toLowerCase() : '';
+  
+  const trackTitle = track.trackName ? track.trackName.toLowerCase() : '';
+  const trackArtist = track.artistName ? track.artistName.toLowerCase() : '';
+  
+  // Title keywords check (words with length > 1)
+  const titleKeywords = expectedTitle.split(/[\s\-\:\.\(\)\[\]]+/g).filter(w => w.length > 1);
+  let titleMatches = 0;
+  for (const word of titleKeywords) {
+    if (trackTitle.includes(word)) titleMatches++;
+  }
+  
+  // Artist keywords check
+  const artistKeywords = expectedArtist.split(/[\s\-\:\.\(\)\[\]]+/g).filter(w => w.length > 1);
+  let artistMatches = 0;
+  for (const word of artistKeywords) {
+    if (trackArtist.includes(word)) artistMatches++;
+  }
+  
+  // We require at least 1 keyword match in Title, and if there is a specified artist, at least 1 keyword match in Artist
+  const titleOk = titleKeywords.length === 0 || titleMatches > 0;
+  const artistOk = artistKeywords.length === 0 || artistMatches > 0;
+  
+  return titleOk && artistOk;
+}
+
+async function queryITunes(term, songString) {
   try {
-    const url = `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&media=music&limit=1`;
+    const url = `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&media=music&limit=3`;
     const data = await jsonpFetch(url);
     if (data && data.results && data.results.length > 0) {
-      const track = data.results[0];
-      // Get higher resolution artwork by modifying the URL
-      const highResArtwork = track.artworkUrl100 
-        ? track.artworkUrl100.replace('100x100bb.jpg', '350x350bb.jpg')
-        : '';
+      // Loop through top 3 results to find the best verified match
+      for (const track of data.results) {
+        if (verifyMatch(track, songString)) {
+          const highResArtwork = track.artworkUrl100 
+            ? track.artworkUrl100.replace('100x100bb.jpg', '350x350bb.jpg')
+            : '';
 
-      return {
-        success: true,
-        previewUrl: track.previewUrl,
-        artworkUrl: highResArtwork,
-        title: track.trackName,
-        artist: track.artistName,
-        trackViewUrl: track.trackViewUrl
-      };
+          return {
+            success: true,
+            previewUrl: track.previewUrl,
+            artworkUrl: highResArtwork,
+            title: track.trackName,
+            artist: track.artistName,
+            trackViewUrl: track.trackViewUrl
+          };
+        }
+      }
     }
   } catch (e) {
     console.warn(`iTunes search failed for term "${term}":`, e);
@@ -77,7 +109,7 @@ export async function fetchSongDetails(songString) {
     .trim();
 
   // Try Search 1: Full song string
-  let details = await queryITunes(cleanTerm);
+  let details = await queryITunes(cleanTerm, songString);
 
   // Try Search 2: Just the song title (if string contains a hyphen)
   if (!details && songString.includes('-')) {
@@ -86,8 +118,8 @@ export async function fetchSongDetails(songString) {
       .replace(/[\(\)\[\]\:\.]/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
-    if (titleOnly.length > 2) {
-      details = await queryITunes(titleOnly);
+    if (titleOnly.length > 1) {
+      details = await queryITunes(titleOnly, songString);
     }
   }
 
@@ -98,8 +130,8 @@ export async function fetchSongDetails(songString) {
       .replace(/[\(\)\[\]\:\.]/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
-    if (artistOnly.length > 2) {
-      details = await queryITunes(artistOnly);
+    if (artistOnly.length > 1) {
+      details = await queryITunes(artistOnly, songString);
     }
   }
 
@@ -107,27 +139,12 @@ export async function fetchSongDetails(songString) {
     return details;
   }
 
-  // 4. Deterministic preset lofi/chill previews fallback (100% visibility guarantee)
-  const presetPreviews = [
-    'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-    'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
-    'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
-    'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3'
-  ];
-
-  let hash = 0;
-  for (let i = 0; i < songString.length; i++) {
-    hash = songString.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const index = Math.abs(hash) % presetPreviews.length;
-  const fallbackUrl = presetPreviews[index];
-
+  // Return no previewUrl if no verified match is found (avoids playing wrong songs)
   const [fallbackTitle, fallbackArtist] = songString.split(' - ');
-
   return {
-    success: true,
-    previewUrl: fallbackUrl,
-    artworkUrl: '', // uses disc placeholder in App.jsx
+    success: false,
+    previewUrl: null,
+    artworkUrl: '',
     title: fallbackTitle ? fallbackTitle.trim() : songString,
     artist: fallbackArtist ? fallbackArtist.trim() : 'Curated Recommendation',
     trackViewUrl: `https://www.youtube.com/results?search_query=${encodeURIComponent(songString)}`
