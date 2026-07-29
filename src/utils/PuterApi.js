@@ -128,6 +128,57 @@ async function queryGeminiModelDirect(base64Data, mimeType, apiKey, prompt) {
   return cleanAndParseJson(textContent);
 }
 
+// Direct OpenRouter Free Call
+async function queryOpenRouterModelDirect(base64Data, mimeType, apiKey, prompt) {
+  const url = 'https://openrouter.ai/api/v1/chat/completions';
+  const requestBody = {
+    model: "meta-llama/llama-3.2-11b-vision-instruct:free",
+    messages: [
+      {
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: prompt
+          },
+          {
+            type: "image_url",
+            image_url: {
+              url: `data:${mimeType};base64,${base64Data}`
+            }
+          }
+        ]
+      }
+    ],
+    response_format: { type: "json_object" },
+    temperature: 0.7
+  };
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`,
+      "HTTP-Referer": window.location.origin,
+      "X-Title": "VibeLens"
+    },
+    body: JSON.stringify(requestBody)
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`OpenRouter API error: ${response.status} - ${errText}`);
+  }
+
+  const result = await response.json();
+  const textContent = result.choices?.[0]?.message?.content;
+  if (!textContent) {
+    throw new Error("No response content from OpenRouter API");
+  }
+
+  return cleanAndParseJson(textContent);
+}
+
 // Puter keyless call
 async function queryPuterModel(dataUrl, prompt, modelName) {
   if (!window.puter) {
@@ -194,27 +245,79 @@ Ensure that your response conforms strictly to this JSON format and contains not
   "songsTamilChristian": ["Song Title - Artist", ...]          // Populate ONLY if Tamil Christian is selected, otherwise empty array
 }`;
 
-  // 1. Try standard key-based API calls if customKey is provided
+  // Read environment API keys
+  const geminiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  const groqKey = import.meta.env.VITE_GROQ_API_KEY;
+  const openrouterKey = import.meta.env.VITE_OPENROUTER_API_KEY;
+
+  // Build Primary API Checklist
+  const primaryApis = [];
+
+  // If a custom key is passed, prioritize it first
   if (customKey && customKey.trim()) {
     const key = customKey.trim();
     if (key.startsWith('gsk_')) {
-      try {
-        if (onStatusChange) onStatusChange("Analyzing with your Groq API key...");
-        return await queryGroqModelDirect(base64Data, mimeType, key, systemPrompt);
-      } catch (e) {
-        console.warn("Direct Groq key call failed:", e);
-      }
+      primaryApis.push({
+        name: 'Custom Groq API Key',
+        fn: () => queryGroqModelDirect(base64Data, mimeType, key, systemPrompt)
+      });
+    } else if (key.startsWith('sk-or-')) {
+      primaryApis.push({
+        name: 'Custom OpenRouter API Key',
+        fn: () => queryOpenRouterModelDirect(base64Data, mimeType, key, systemPrompt)
+      });
     } else {
-      try {
-        if (onStatusChange) onStatusChange("Analyzing with your Gemini API key...");
-        return await queryGeminiModelDirect(base64Data, mimeType, key, systemPrompt);
-      } catch (e) {
-        console.warn("Direct Gemini key call failed:", e);
-      }
+      primaryApis.push({
+        name: 'Custom Gemini API Key',
+        fn: () => queryGeminiModelDirect(base64Data, mimeType, key, systemPrompt)
+      });
     }
   }
 
-  // 2. Puter Keyless Fallback Chain
+  // Append standard env keys in preference order (Gemini -> Groq -> OpenRouter Free)
+  if (geminiKey && geminiKey.trim()) {
+    primaryApis.push({
+      name: 'Gemini API (Primary)',
+      fn: () => queryGeminiModelDirect(base64Data, mimeType, geminiKey.trim(), systemPrompt)
+    });
+  }
+
+  if (groqKey && groqKey.trim()) {
+    primaryApis.push({
+      name: 'Groq API (Secondary)',
+      fn: () => queryGroqModelDirect(base64Data, mimeType, groqKey.trim(), systemPrompt)
+    });
+  }
+
+  if (openrouterKey && openrouterKey.trim()) {
+    primaryApis.push({
+      name: 'OpenRouter Free API (Tertiary)',
+      fn: () => queryOpenRouterModelDirect(base64Data, mimeType, openrouterKey.trim(), systemPrompt)
+    });
+  }
+
+  // 1. Run through Primary APIs
+  for (const api of primaryApis) {
+    try {
+      if (onStatusChange) onStatusChange(`Analyzing with ${api.name}...`);
+      const result = await api.fn();
+      if (result) {
+        return result;
+      }
+    } catch (e) {
+      console.warn(`${api.name} failed:`, e);
+    }
+  }
+
+  // 2. Puter Keyless Fallback Chain (only runs if primary keys fail/exhausted or not provided)
+  if (onStatusChange) {
+    if (primaryApis.length > 0) {
+      onStatusChange("Primary API limits exhausted. Switching to Puter...");
+    } else {
+      onStatusChange("No Primary API keys configured. Using Puter...");
+    }
+  }
+
   const fallbackModels = [
     { provider: 'Gemini 3.6', name: 'gemini-3.6-flash' },
     { provider: 'Gemini 3.5', name: 'gemini-3.5-flash' },
