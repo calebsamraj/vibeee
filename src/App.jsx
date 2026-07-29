@@ -237,7 +237,6 @@ export default function App() {
     try {
       const curatedData = await queryWithFallback(imageFile, apiKey, options, setLoadingStatus);
       
-      setLoadingStatus('Fetching official artwork and audio previews...');
       const songsList = [
         ...(curatedData.songsTamil || []),
         ...(curatedData.songsEnglish || []),
@@ -245,12 +244,14 @@ export default function App() {
       ];
 
       const metadataDict = {};
-      await Promise.all(
-        songsList.map(async (song) => {
-          const details = await fetchSongDetails(song);
-          metadataDict[song] = details;
-        })
-      );
+      for (let i = 0; i < songsList.length; i++) {
+        const song = songsList[i];
+        setLoadingStatus(`Fetching audio previews (${i + 1}/${songsList.length})...`);
+        const details = await fetchSongDetails(song);
+        metadataDict[song] = details;
+        // Spaced script injection to avoid concurrent throttling on mobile WebKit (Safari/Chrome on iOS)
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
 
       setSongMetadata(metadataDict);
       setResults(curatedData);
