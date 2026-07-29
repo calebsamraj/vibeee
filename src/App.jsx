@@ -1,10 +1,11 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Upload, Image as ImageIcon, Music, 
   Copy, Check, RefreshCw, Sparkles, 
   Trash2, Play, Disc
 } from 'lucide-react';
 import { queryWithFallback } from './utils/PuterApi';
+import { fetchSongDetails } from './utils/MusicApi';
 import Toast from './components/Toast';
 
 const SAMPLE_IMAGES = [
@@ -49,12 +50,25 @@ export default function App() {
     songsHindi: true
   });
   
+  const [songMetadata, setSongMetadata] = useState({});
+  const [playingTrackUrl, setPlayingTrackUrl] = useState(null);
+  
   const [toast, setToast] = useState(null);
   const [copiedCaptionIndex, setCopiedCaptionIndex] = useState(null);
   const [copiedHashtags, setCopiedHashtags] = useState(false);
   
   const fileInputRef = useRef(null);
   const dragRef = useRef(null);
+  const audioRef = useRef(null);
+
+  // Clean up audio on unmount
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+    };
+  }, []);
   
   const showToast = (message, type = 'error') => {
     setToast({ message, type });
@@ -99,9 +113,16 @@ export default function App() {
       URL.revokeObjectURL(imagePreview);
     }
     
+    // Stop any playing audio
+    if (audioRef.current) {
+      audioRef.current.pause();
+      setPlayingTrackUrl(null);
+    }
+
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
     setResults(null);
+    setSongMetadata({});
   };
 
   const handleSelectSample = async (sample) => {
@@ -111,9 +132,16 @@ export default function App() {
       const blob = await response.blob();
       const file = new File([blob], `${sample.id}.jpg`, { type: 'image/jpeg' });
       
+      // Stop any playing audio
+      if (audioRef.current) {
+        audioRef.current.pause();
+        setPlayingTrackUrl(null);
+      }
+
       setImageFile(file);
       setImagePreview(sample.url);
       setResults(null);
+      setSongMetadata({});
     } catch (err) {
       console.error(err);
       showToast('Failed to load sample image. Please upload your own.', 'error');
@@ -126,9 +154,17 @@ export default function App() {
     if (imagePreview && !imagePreview.startsWith('http')) {
       URL.revokeObjectURL(imagePreview);
     }
+    
+    // Stop any playing audio
+    if (audioRef.current) {
+      audioRef.current.pause();
+      setPlayingTrackUrl(null);
+    }
+
     setImageFile(null);
     setImagePreview('');
     setResults(null);
+    setSongMetadata({});
   };
 
   const handleAnalyze = async () => {
@@ -147,12 +183,36 @@ export default function App() {
       return;
     }
 
+    // Stop any playing audio
+    if (audioRef.current) {
+      audioRef.current.pause();
+      setPlayingTrackUrl(null);
+    }
+
     setLoadingStep('curating');
     setLoadingStatus('Initializing AI models...');
     setResults(null);
+    setSongMetadata({});
     
     try {
       const curatedData = await queryWithFallback(imageFile, apiKey, options, setLoadingStatus);
+      
+      setLoadingStatus('Fetching official artwork and audio previews...');
+      const songsList = [
+        ...(curatedData.songsTamil || []),
+        ...(curatedData.songsEnglish || []),
+        ...(curatedData.songsHindi || [])
+      ];
+
+      const metadataDict = {};
+      await Promise.all(
+        songsList.map(async (song) => {
+          const details = await fetchSongDetails(song);
+          metadataDict[song] = details;
+        })
+      );
+
+      setSongMetadata(metadataDict);
       setResults(curatedData);
       showToast('Visual curation completed successfully!', 'success');
     } catch (err) {
@@ -161,6 +221,31 @@ export default function App() {
     } finally {
       setLoadingStep(null);
       setLoadingStatus('');
+    }
+  };
+
+  const togglePlay = (previewUrl) => {
+    if (!previewUrl) return;
+
+    if (!audioRef.current) {
+      audioRef.current = new Audio(previewUrl);
+      audioRef.current.onended = () => {
+        setPlayingTrackUrl(null);
+      };
+    }
+
+    if (playingTrackUrl === previewUrl) {
+      audioRef.current.pause();
+      setPlayingTrackUrl(null);
+    } else {
+      audioRef.current.pause();
+      audioRef.current.src = previewUrl;
+      audioRef.current.load();
+      audioRef.current.play().catch(e => {
+        console.warn("Playback blocked by browser autoplay rules:", e);
+        showToast("Audio playback blocked. Interact with the page to play.", "warning");
+      });
+      setPlayingTrackUrl(previewUrl);
     }
   };
 
@@ -178,6 +263,106 @@ export default function App() {
       console.error('Failed to copy:', err);
       showToast('Failed to copy to clipboard.', 'error');
     });
+  };
+
+  // Helper renderer for song items
+  const renderSongItem = (song, idx) => {
+    const meta = songMetadata[song] || {};
+    const hasPreview = !!meta.previewUrl;
+    const isCurrentPlaying = hasPreview && playingTrackUrl === meta.previewUrl;
+    
+    // Parse title & artist fallbacks
+    const [fallbackTitle, fallbackArtist] = song.split(' - ');
+    const displayTitle = meta.title || fallbackTitle || song;
+    const displayArtist = meta.artist || fallbackArtist || "Unknown Artist";
+
+    return (
+      <div 
+        key={idx} 
+        className={`group/song flex items-center justify-between p-3.5 bg-slate-950/30 hover:bg-slate-950/50 rounded-2xl border transition-all duration-300 ${
+          isCurrentPlaying ? 'border-cyan-500/40 bg-cyan-950/5' : 'border-white/5 hover:border-cyan-500/20'
+        }`}
+      >
+        <div className="flex items-center gap-3.5 min-w-0">
+          {/* Album artwork container */}
+          <div 
+            onClick={() => hasPreview && togglePlay(meta.previewUrl)}
+            className={`w-12 h-12 rounded-xl border border-white/5 flex items-center justify-center shrink-0 relative overflow-hidden group-hover/song:shadow-md transition-all duration-300 ${
+              hasPreview ? 'cursor-pointer' : ''
+            } ${
+              isCurrentPlaying ? 'shadow-lg shadow-cyan-500/20 border-cyan-500/30' : ''
+            }`}
+          >
+            {meta.artworkUrl ? (
+              <img 
+                src={meta.artworkUrl} 
+                alt="Album art" 
+                className={`absolute inset-0 w-full h-full object-cover transition-transform duration-500 ${
+                  isCurrentPlaying ? 'animate-spin-slow scale-105' : 'group-hover/song:scale-105'
+                }`}
+              />
+            ) : (
+              <div className="absolute inset-0 bg-gradient-to-br from-cyan-600/20 to-teal-600/20 flex items-center justify-center">
+                <Disc className={`w-6 h-6 text-cyan-400 ${isCurrentPlaying ? 'animate-spin-slow' : ''}`} />
+              </div>
+            )}
+            
+            {/* Play/Pause overlay */}
+            {hasPreview && (
+              <div className={`absolute inset-0 bg-black/50 flex items-center justify-center transition-opacity duration-300 ${
+                isCurrentPlaying ? 'opacity-100' : 'opacity-0 group-hover/song:opacity-100'
+              }`}>
+                {isCurrentPlaying ? (
+                  <div className="flex gap-0.5 items-end justify-center w-5 h-5">
+                    <span className="w-0.75 bg-cyan-400 animate-[bounce_0.8s_infinite_100ms] h-3"></span>
+                    <span className="w-0.75 bg-cyan-400 animate-[bounce_0.8s_infinite_300ms] h-4"></span>
+                    <span className="w-0.75 bg-cyan-400 animate-[bounce_0.8s_infinite_200ms] h-2.5"></span>
+                  </div>
+                ) : (
+                  <Play className="w-4 h-4 fill-cyan-400 text-cyan-400" />
+                )}
+              </div>
+            )}
+          </div>
+          
+          <div className="min-w-0">
+            <p className={`text-sm font-semibold truncate transition-colors ${
+              isCurrentPlaying ? 'text-cyan-300' : 'text-slate-200 group-hover/song:text-cyan-300'
+            }`}>
+              {displayTitle}
+            </p>
+            <p className="text-xs text-slate-500 truncate mt-0.5">
+              {displayArtist}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {hasPreview && (
+            <button
+              onClick={() => togglePlay(meta.previewUrl)}
+              className={`p-2 rounded-xl border transition-all text-xs font-semibold cursor-pointer ${
+                isCurrentPlaying 
+                  ? 'bg-cyan-950/40 border-cyan-500/30 text-cyan-400' 
+                  : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-cyan-400 hover:border-cyan-500/30'
+              }`}
+              title={isCurrentPlaying ? "Pause Preview" : "Play Preview"}
+            >
+              {isCurrentPlaying ? "Pause" : "Preview"}
+            </button>
+          )}
+          <a 
+            href={meta.trackViewUrl || `https://www.youtube.com/results?search_query=${encodeURIComponent(song)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-cyan-500/30 text-slate-400 hover:text-cyan-400 transition-colors shrink-0"
+            title={meta.trackViewUrl ? "Listen on Apple Music" : "Listen on YouTube"}
+          >
+            <Play className="w-3.5 h-3.5 fill-current" />
+          </a>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -591,38 +776,7 @@ export default function App() {
                     </h3>
                     
                     <div className="flex flex-col gap-3">
-                      {results.songsTamil.map((song, idx) => {
-                        const [title, artist] = song.split(' - ');
-                        return (
-                          <div 
-                            key={idx} 
-                            className="group/song flex items-center justify-between p-3.5 bg-slate-950/30 hover:bg-slate-950/50 rounded-2xl border border-white/5 hover:border-cyan-500/20 transition-all duration-300"
-                          >
-                            <div className="flex items-center gap-3 min-w-0">
-                              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-600/20 to-teal-600/20 border border-white/5 flex items-center justify-center shrink-0 relative overflow-hidden group-hover/song:shadow-md group-hover/song:shadow-cyan-500/10 transition-shadow">
-                                <Disc className="w-5 h-5 text-cyan-400 group-hover/song:animate-spin-slow" />
-                              </div>
-                              <div className="min-w-0">
-                                <p className="text-sm font-semibold text-slate-200 truncate group-hover/song:text-cyan-300 transition-colors">
-                                  {title || song}
-                                </p>
-                                <p className="text-xs text-slate-500 truncate mt-0.5">
-                                  {artist || "Unknown Artist"}
-                                </p>
-                              </div>
-                            </div>
-                            <a 
-                              href={`https://www.youtube.com/results?search_query=${encodeURIComponent(song)}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="p-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-cyan-500/30 text-slate-400 hover:text-cyan-400 transition-colors shrink-0"
-                              title="Listen on YouTube"
-                            >
-                              <Play className="w-3.5 h-3.5 fill-current" />
-                            </a>
-                          </div>
-                        );
-                      })}
+                      {results.songsTamil.map((song, idx) => renderSongItem(song, idx))}
                     </div>
                   </div>
                 )}
@@ -641,38 +795,7 @@ export default function App() {
                     </h3>
                     
                     <div className="flex flex-col gap-3">
-                      {results.songsEnglish.map((song, idx) => {
-                        const [title, artist] = song.split(' - ');
-                        return (
-                          <div 
-                            key={idx} 
-                            className="group/song flex items-center justify-between p-3.5 bg-slate-950/30 hover:bg-slate-950/50 rounded-2xl border border-white/5 hover:border-blue-500/20 transition-all duration-300"
-                          >
-                            <div className="flex items-center gap-3 min-w-0">
-                              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600/20 to-indigo-600/20 border border-white/5 flex items-center justify-center shrink-0 relative overflow-hidden group-hover/song:shadow-md group-hover/song:shadow-blue-500/10 transition-shadow">
-                                <Disc className="w-5 h-5 text-blue-400 group-hover/song:animate-spin-slow" />
-                              </div>
-                              <div className="min-w-0">
-                                <p className="text-sm font-semibold text-slate-200 truncate group-hover/song:text-blue-300 transition-colors">
-                                  {title || song}
-                                </p>
-                                <p className="text-xs text-slate-500 truncate mt-0.5">
-                                  {artist || "Unknown Artist"}
-                                </p>
-                              </div>
-                            </div>
-                            <a 
-                              href={`https://www.youtube.com/results?search_query=${encodeURIComponent(song)}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="p-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-blue-500/30 text-slate-400 hover:text-blue-400 transition-colors shrink-0"
-                              title="Listen on YouTube"
-                            >
-                              <Play className="w-3.5 h-3.5 fill-current" />
-                            </a>
-                          </div>
-                        );
-                      })}
+                      {results.songsEnglish.map((song, idx) => renderSongItem(song, idx))}
                     </div>
                   </div>
                 )}
@@ -691,38 +814,7 @@ export default function App() {
                     </h3>
                     
                     <div className="flex flex-col gap-3">
-                      {results.songsHindi.map((song, idx) => {
-                        const [title, artist] = song.split(' - ');
-                        return (
-                          <div 
-                            key={idx} 
-                            className="group/song flex items-center justify-between p-3.5 bg-slate-950/30 hover:bg-slate-950/50 rounded-2xl border border-white/5 hover:border-teal-500/20 transition-all duration-300"
-                          >
-                            <div className="flex items-center gap-3 min-w-0">
-                              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-600/20 to-emerald-600/20 border border-white/5 flex items-center justify-center shrink-0 relative overflow-hidden group-hover/song:shadow-md group-hover/song:shadow-teal-500/10 transition-shadow">
-                                <Disc className="w-5 h-5 text-teal-400 group-hover/song:animate-spin-slow" />
-                              </div>
-                              <div className="min-w-0">
-                                <p className="text-sm font-semibold text-slate-200 truncate group-hover/song:text-teal-300 transition-colors">
-                                  {title || song}
-                                </p>
-                                <p className="text-xs text-slate-500 truncate mt-0.5">
-                                  {artist || "Unknown Artist"}
-                                </p>
-                              </div>
-                            </div>
-                            <a 
-                              href={`https://www.youtube.com/results?search_query=${encodeURIComponent(song)}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="p-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-teal-500/30 text-slate-400 hover:text-teal-400 transition-colors shrink-0"
-                              title="Listen on YouTube"
-                            >
-                              <Play className="w-3.5 h-3.5 fill-current" />
-                            </a>
-                          </div>
-                        );
-                      })}
+                      {results.songsHindi.map((song, idx) => renderSongItem(song, idx))}
                     </div>
                   </div>
                 )}
