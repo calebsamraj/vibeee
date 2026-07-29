@@ -1,8 +1,15 @@
+import { queryGroqModel } from './GroqApi';
+
 export async function queryGeminiModel(imageFile, apiKey) {
+  if (apiKey.startsWith('gsk_')) {
+    return queryGroqModel(imageFile, apiKey);
+  }
+
   const base64Data = await fileToBase64(imageFile);
   const mimeType = imageFile.type || 'image/jpeg';
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
+  // Use gemini-1.5-flash to get 1,500 free requests per day instead of 20
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
   const prompt = `You are a social media and music curation expert. Your task is to analyze the provided image and generate:
 1. 3 highly creative, engaging, and different styles of social media captions (e.g., one witty, one poetic, one direct/engaging).
@@ -90,3 +97,4 @@ function fileToBase64(file) {
     reader.onerror = error => reject(error);
   });
 }
+

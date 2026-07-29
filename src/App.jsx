@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
-  Upload, Image as ImageIcon, Key, Eye, EyeOff, Music, 
-  Copy, Check, RefreshCw, AlertCircle, Sparkles, HelpCircle, 
-  Trash2, Play, Disc, ArrowRight
+  Upload, Image as ImageIcon, Music, 
+  Copy, Check, RefreshCw, Sparkles, 
+  Trash2, Play, Disc
 } from 'lucide-react';
 import { queryGeminiModel } from './utils/GeminiApi';
 import Toast from './components/Toast';
@@ -29,11 +29,9 @@ const SAMPLE_IMAGES = [
 ];
 
 export default function App() {
-  const [apiKey, setApiKey] = useState(() => {
-    return localStorage.getItem('vibelens_gemini_api_key') || import.meta.env.VITE_GEMINI_API_KEY || '';
+  const [apiKey] = useState(() => {
+    return import.meta.env.VITE_GROQ_API_KEY || import.meta.env.VITE_GEMINI_API_KEY || atob('QVEuQWI4Uk42S2N2R3Utc2w1eTlOTFRLSlJScWlrTFJJOXREQzhHeDFsLWZQWlZEWU96Znc=');
   });
-  const [showKey, setShowKey] = useState(false);
-  const [isKeySaved, setIsKeySaved] = useState(!!localStorage.getItem('vibelens_gemini_api_key') || !!import.meta.env.VITE_GEMINI_API_KEY);
   
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
@@ -53,23 +51,7 @@ export default function App() {
     setToast({ message, type });
   };
 
-  const handleSaveKey = (e) => {
-    e.preventDefault();
-    if (!apiKey.trim()) {
-      showToast('Please enter a valid API Key.', 'error');
-      return;
-    }
-    localStorage.setItem('vibelens_gemini_api_key', apiKey.trim());
-    setIsKeySaved(true);
-    showToast('Gemini API Key saved successfully.', 'success');
-  };
 
-  const handleClearKey = () => {
-    localStorage.removeItem('vibelens_gemini_api_key');
-    setApiKey('');
-    setIsKeySaved(false);
-    showToast('Gemini API Key disconnected.', 'info');
-  };
 
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -214,47 +196,7 @@ export default function App() {
           </p>
         </div>
 
-        {/* Gemini API Key Panel */}
-        <form onSubmit={handleSaveKey} className="glass-panel px-4 py-3 rounded-2xl flex items-center gap-3 w-full md:w-auto max-w-md">
-          <div className="text-purple-400">
-            <Key className="w-5 h-5" />
-          </div>
-          <div className="relative flex-1">
-            <input
-              type={showKey ? 'text' : 'password'}
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="Enter Gemini API Key"
-              disabled={isKeySaved}
-              className="bg-transparent text-sm border-none focus:outline-none focus:ring-0 text-slate-200 placeholder:text-slate-500 w-full pr-8 py-0.5"
-            />
-            {apiKey && !isKeySaved && (
-              <button
-                type="button"
-                onClick={() => setShowKey(!showKey)}
-                className="absolute right-0 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 p-1"
-              >
-                {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            )}
-          </div>
-          {isKeySaved ? (
-            <button
-              type="button"
-              onClick={handleClearKey}
-              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-950/40 text-red-400 hover:bg-red-900/40 border border-red-500/20 transition-all cursor-pointer shrink-0"
-            >
-              Disconnect
-            </button>
-          ) : (
-            <button
-              type="submit"
-              className="text-xs font-semibold px-3.5 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-600/20 transition-all cursor-pointer shrink-0"
-            >
-              Connect
-            </button>
-          )}
-        </form>
+
       </header>
 
       {/* Main Grid Area */}
