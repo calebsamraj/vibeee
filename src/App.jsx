@@ -77,16 +77,16 @@ export default function App() {
   }, []);
 
   const toggleBgMusic = () => {
-    if (!bgAudioRef.current) {
-      bgAudioRef.current = new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3');
-      bgAudioRef.current.loop = true;
-      bgAudioRef.current.volume = 0.2; // Keep it subtle
-      bgAudioRef.current.onplay = () => setBgMusicPlaying(true);
-      bgAudioRef.current.onpause = () => setBgMusicPlaying(false);
+    const bgAudio = bgAudioRef.current;
+    if (!bgAudio) return;
+
+    if (!bgAudio.src) {
+      bgAudio.src = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3';
+      bgAudio.volume = 0.2;
     }
 
     if (bgMusicPlaying) {
-      bgAudioRef.current.pause();
+      bgAudio.pause();
       setBgMusicPlaying(false);
     } else {
       // Pause any playing preview track
@@ -94,11 +94,19 @@ export default function App() {
         audioRef.current.pause();
         setPlayingTrackUrl(null);
       }
-      bgAudioRef.current.play().catch(e => {
-        console.warn("BG audio play blocked:", e);
-        showToast("Audio playback blocked. Interact with the page first.", "warning");
+      bgAudio.play().then(() => {
+        setBgMusicPlaying(true);
+      }).catch(e => {
+        console.warn("BG audio play blocked, trying muted play:", e);
+        bgAudio.muted = true;
+        bgAudio.play().then(() => {
+          bgAudio.muted = false;
+          setBgMusicPlaying(true);
+        }).catch(err => {
+          console.error("Muted BG playback failed:", err);
+          showToast("Audio blocked. Tap the screen to play ambient track.", "warning");
+        });
       });
-      setBgMusicPlaying(true);
     }
   };
   
@@ -265,35 +273,38 @@ export default function App() {
       setBgMusicPlaying(false);
     }
 
+    const audio = audioRef.current;
+    if (!audio) return;
+
     // Clicked on the currently playing track -> Pause it
     if (playingTrackUrl === previewUrl) {
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
+      audio.pause();
       setPlayingTrackUrl(null);
       return;
     }
 
     // Stop any previously playing track preview
-    if (audioRef.current) {
-      audioRef.current.pause();
+    audio.pause();
+    audio.src = previewUrl;
+    audio.load();
+
+    const playPromise = audio.play();
+    if (playPromise !== undefined) {
+      playPromise.then(() => {
+        setPlayingTrackUrl(previewUrl);
+      }).catch(e => {
+        console.warn("Autoplay blocked by browser rules, attempting muted bypass:", e);
+        audio.muted = true;
+        audio.play().then(() => {
+          audio.muted = false;
+          setPlayingTrackUrl(previewUrl);
+        }).catch(err => {
+          console.error("Muted playback failed too:", err);
+          showToast("Audio playback blocked. Tap again to play.", "warning");
+          setPlayingTrackUrl(null);
+        });
+      });
     }
-
-    // Create a fresh Audio object on click to bypass iOS Safari autoplay security blocks
-    const newAudio = new Audio(previewUrl);
-    newAudio.onended = () => {
-      setPlayingTrackUrl(null);
-    };
-
-    newAudio.play().then(() => {
-      setPlayingTrackUrl(previewUrl);
-    }).catch(e => {
-      console.warn("Playback blocked by browser autoplay rules:", e);
-      showToast("Audio playback blocked. Tap the screen to play.", "warning");
-      setPlayingTrackUrl(null);
-    });
-
-    audioRef.current = newAudio;
   };
 
   const copyToClipboard = (text, type, index = null) => {
@@ -388,7 +399,7 @@ export default function App() {
           {hasPreview && (
             <button
               onClick={() => togglePlay(meta.previewUrl)}
-              className={`p-2 rounded-xl border transition-all text-xs font-semibold cursor-pointer ${
+              className={`h-10 px-3 md:px-4 rounded-xl border transition-all text-xs font-semibold cursor-pointer flex items-center justify-center ${
                 isCurrentPlaying 
                   ? 'bg-cyan-950/40 border-cyan-500/30 text-cyan-400' 
                   : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-cyan-400 hover:border-cyan-500/30'
@@ -402,7 +413,7 @@ export default function App() {
             href={meta.trackViewUrl || `https://www.youtube.com/results?search_query=${encodeURIComponent(song)}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="p-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-cyan-500/30 text-slate-400 hover:text-cyan-400 transition-colors shrink-0"
+            className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 hover:border-cyan-500/30 text-slate-400 hover:text-cyan-400 transition-colors shrink-0 flex items-center justify-center"
             title={meta.trackViewUrl ? "Listen on Apple Music" : "Listen on YouTube"}
           >
             <Play className="w-3.5 h-3.5 fill-current" />
@@ -416,6 +427,23 @@ export default function App() {
     <div className="min-h-screen flex flex-col items-center px-4 py-8 md:px-8 max-w-7xl mx-auto w-full relative">
       {/* 3D Background */}
       <ThreeBackground />
+
+      {/* Hidden Audio Elements for Mobile Autoplay Bypass */}
+      <audio 
+        ref={audioRef} 
+        preload="auto" 
+        playsInline 
+        onEnded={() => setPlayingTrackUrl(null)} 
+      />
+      <audio 
+        ref={bgAudioRef} 
+        preload="auto" 
+        loop 
+        playsInline 
+        onPlay={() => setBgMusicPlaying(true)}
+        onPause={() => setBgMusicPlaying(false)}
+      />
+
       {/* Background Glow Orbs */}
       <div className="absolute top-[-10%] left-[-10%] w-[40vw] h-[40vw] rounded-full bg-cyan-900/10 blur-[120px] pointer-events-none animate-pulse-soft"></div>
       <div className="absolute bottom-[10%] right-[-10%] w-[40vw] h-[40vw] rounded-full bg-teal-900/10 blur-[120px] pointer-events-none animate-pulse-soft" style={{ animationDelay: '1.5s' }}></div>
