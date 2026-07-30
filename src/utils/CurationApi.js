@@ -35,8 +35,8 @@ function cleanAndParseJson(text) {
   }
 }
 
-// Timeout helper (8 seconds limit)
-const fetchWithTimeout = (url, options, timeoutMs = 8000) => {
+// Timeout helper (30 seconds limit)
+const fetchWithTimeout = (url, options, timeoutMs = 30000) => {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       reject(new Error(`Timeout of ${timeoutMs}ms exceeded`));
@@ -80,7 +80,7 @@ async function callGeminiDirect(base64Data, mimeType, apiKey, prompt) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(requestBody)
-  }, 8000);
+  }, 30000);
 
   const textContent = await response.text();
   if (!response.ok) {
@@ -126,7 +126,7 @@ async function callGroqDirect(base64Data, mimeType, apiKey, prompt) {
       "Authorization": `Bearer ${apiKey}`
     },
     body: JSON.stringify(requestBody)
-  }, 8000);
+  }, 30000);
 
   const textContent = await response.text();
   if (!response.ok) {
@@ -188,7 +188,7 @@ async function callOpenRouterDirect(base64Data, mimeType, apiKey, prompt, onStat
           "X-Title": "VibeLens"
         },
         body: JSON.stringify(requestBody)
-      }, 8000);
+      }, 30000);
 
       const textContent = await response.text();
       if (!response.ok) {
@@ -233,7 +233,7 @@ async function callDeepSeekDirect(apiKey, prompt) {
       "Authorization": `Bearer ${apiKey}`
     },
     body: JSON.stringify(requestBody)
-  }, 8000);
+  }, 30000);
 
   const textContent = await response.text();
   if (!response.ok) {

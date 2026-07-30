@@ -6,6 +6,9 @@ import { fileURLToPath } from 'url';
 
 dotenv.config();
 
+// Disable TLS rejection for local SSL inspect proxies
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -26,8 +29,8 @@ function cleanAndParseJson(text) {
   return JSON.parse(cleaned);
 }
 
-// Timeout helper (8 seconds limit)
-const fetchWithTimeout = (url, options, timeoutMs = 8000) => {
+// Timeout helper (30 seconds limit)
+const fetchWithTimeout = (url, options, timeoutMs = 30000) => {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       reject(new Error(`Timeout of ${timeoutMs}ms exceeded`));
@@ -90,7 +93,7 @@ async function callGemini(base64Data, mimeType, apiKey, prompt) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(requestBody)
-  }, 8000);
+  }, 30000);
 
   const textContent = await response.text();
   if (!response.ok) {
@@ -136,7 +139,7 @@ async function callGroq(base64Data, mimeType, apiKey, prompt) {
       "Authorization": `Bearer ${apiKey}`
     },
     body: JSON.stringify(requestBody)
-  }, 8000);
+  }, 30000);
 
   const textContent = await response.text();
   if (!response.ok) {
@@ -198,7 +201,7 @@ async function callOpenRouter(base64Data, mimeType, apiKey, prompt) {
           "X-Title": "VibeLens"
         },
         body: JSON.stringify(requestBody)
-      }, 8000);
+      }, 30000);
 
       const textContent = await response.text();
       if (!response.ok) {
@@ -244,7 +247,7 @@ async function callDeepSeek(apiKey, prompt) {
       "Authorization": `Bearer ${apiKey}`
     },
     body: JSON.stringify(requestBody)
-  }, 8000);
+  }, 30000);
 
   const textContent = await response.text();
   if (!response.ok) {
