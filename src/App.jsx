@@ -753,6 +753,17 @@ export default function App() {
           {/* Results Render Area */}
           {!loadingStep && results && (
             <div className="grid grid-cols-1 gap-6 animate-slide-in">
+              {results._modelUsed && (
+                <div className="glass-panel p-4 rounded-2xl flex items-center justify-between border border-cyan-500/20 bg-cyan-950/10">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-cyan-400 animate-pulse" />
+                    <span className="text-xs text-slate-300 font-medium">Curated by AI Engine:</span>
+                  </div>
+                  <span className="text-xs font-mono font-semibold text-cyan-400 bg-cyan-950/40 border border-cyan-500/30 px-3 py-1 rounded-full shadow-glow-cyan">
+                    {results._modelUsed}
+                  </span>
+                </div>
+              )}
               
               {/* Captions Block */}
               <div className="glass-panel p-6 rounded-3xl flex flex-col gap-4">

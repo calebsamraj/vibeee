@@ -93,7 +93,7 @@ async function callGeminiDirect(base64Data, mimeType, apiKey, prompt) {
     throw new Error("Empty candidate text from Gemini response");
   }
 
-  return cleanAndParseJson(responseText);
+  return { ...cleanAndParseJson(responseText), _modelUsed: "Gemini 3.5 Flash [Direct Client]" };
 }
 
 // 2. Groq Direct Call
@@ -139,7 +139,7 @@ async function callGroqDirect(base64Data, mimeType, apiKey, prompt) {
     throw new Error("Empty choices response from Groq API");
   }
 
-  return cleanAndParseJson(responseText);
+  return { ...cleanAndParseJson(responseText), _modelUsed: "Groq (Llama 3.2 Vision) [Direct Client]" };
 }
 
 // 3. OpenRouter Direct Call (with model rotation fallback)
@@ -201,7 +201,7 @@ async function callOpenRouterDirect(base64Data, mimeType, apiKey, prompt, onStat
         throw new Error(`Empty choices response for model ${model}`);
       }
 
-      return cleanAndParseJson(responseText);
+      return { ...cleanAndParseJson(responseText), _modelUsed: `OpenRouter (${model}) [Direct Client]` };
     } catch (e) {
       console.warn(`[Client Direct] OpenRouter model ${model} failed:`, e.message || e);
       lastErr = e;
@@ -246,7 +246,7 @@ async function callDeepSeekDirect(apiKey, prompt) {
     throw new Error("Empty choices response from DeepSeek API");
   }
 
-  return cleanAndParseJson(responseText);
+  return { ...cleanAndParseJson(responseText), _modelUsed: "DeepSeek-V3 [Direct Client]" };
 }
 
 // Client-side Direct Fallback router
