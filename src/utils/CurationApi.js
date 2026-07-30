@@ -56,7 +56,7 @@ const fetchWithTimeout = (url, options, timeoutMs = 8000) => {
 
 // 1. Google Gemini Direct Call
 async function callGeminiDirect(base64Data, mimeType, apiKey, prompt) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
   const requestBody = {
     contents: [
       {
@@ -148,6 +148,7 @@ async function callOpenRouterDirect(base64Data, mimeType, apiKey, prompt, onStat
   
   const openRouterModels = [
     "openrouter/free", // Automates free vision routing
+    "google/gemini-3.5-flash:free",
     "google/gemini-2.5-flash:free",
     "meta-llama/llama-3.2-11b-vision-instruct:free",
     "meta-llama/llama-3.2-90b-vision-instruct:free",

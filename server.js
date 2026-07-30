@@ -66,7 +66,7 @@ function isRetryableError(status, text = "") {
 
 // 1. Google Gemini API Call
 async function callGemini(base64Data, mimeType, apiKey, prompt) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
   const requestBody = {
     contents: [
       {
@@ -158,6 +158,7 @@ async function callOpenRouter(base64Data, mimeType, apiKey, prompt) {
   
   const openRouterModels = [
     "openrouter/free",
+    "google/gemini-3.5-flash:free",
     "google/gemini-2.5-flash:free",
     "meta-llama/llama-3.2-11b-vision-instruct:free",
     "meta-llama/llama-3.2-90b-vision-instruct:free",
