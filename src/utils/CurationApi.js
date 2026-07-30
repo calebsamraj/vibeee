@@ -1,19 +1,22 @@
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import path from 'path';
-import { fileURLToPath } from 'url';
+/**
+ * Curation API utility: Client-side AI adapter and direct fallback router
+ * using Gemini, Groq, and OpenRouter free tiers.
+ */
 
-dotenv.config();
+// Helper to convert file to base64
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => {
+      const base64 = reader.result.split(',')[1];
+      resolve(base64);
+    };
+    reader.onerror = error => reject(error);
+  });
+}
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const app = express();
-app.use(cors());
-app.use(express.json({ limit: '12mb' }));
-
-// Helper to clean markdown block wrappers and parse JSON
+// Clean markdown blocks and parse JSON
 function cleanAndParseJson(text) {
   let cleaned = text.trim();
   if (cleaned.startsWith('```')) {
@@ -23,7 +26,13 @@ function cleanAndParseJson(text) {
     cleaned = cleaned.substring(0, cleaned.length - 3);
   }
   cleaned = cleaned.trim();
-  return JSON.parse(cleaned);
+  
+  try {
+    return JSON.parse(cleaned);
+  } catch (e) {
+    console.error("Failed to parse JSON:", cleaned);
+    throw new Error(`AI returned invalid JSON: ${e.message}`);
+  }
 }
 
 // Timeout helper (8 seconds limit)
@@ -45,27 +54,8 @@ const fetchWithTimeout = (url, options, timeoutMs = 8000) => {
   });
 };
 
-// Check if a response status or error indicates rate limits / quota issues
-function isRetryableError(status, text = "") {
-  if (status === 429 || status >= 500) {
-    return true;
-  }
-  const lower = text.toLowerCase();
-  if (
-    lower.includes("quota exceeded") ||
-    lower.includes("rate limit") ||
-    lower.includes("daily limit") ||
-    lower.includes("limit exceeded") ||
-    lower.includes("too many requests") ||
-    lower.includes("unavailable")
-  ) {
-    return true;
-  }
-  return false;
-}
-
-// 1. Google Gemini API Call
-async function callGemini(base64Data, mimeType, apiKey, prompt) {
+// 1. Google Gemini Direct Call
+async function callGeminiDirect(base64Data, mimeType, apiKey, prompt) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
   const requestBody = {
     contents: [
@@ -94,20 +84,20 @@ async function callGemini(base64Data, mimeType, apiKey, prompt) {
 
   const textContent = await response.text();
   if (!response.ok) {
-    throw { status: response.status, message: `Gemini API returned error: ${textContent}` };
+    throw new Error(`Gemini API returned error: ${textContent}`);
   }
 
   const result = JSON.parse(textContent);
   const responseText = result.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!responseText) {
-    throw { status: 500, message: "Empty candidate text from Gemini response" };
+    throw new Error("Empty candidate text from Gemini response");
   }
 
   return cleanAndParseJson(responseText);
 }
 
-// 2. Groq API Call
-async function callGroq(base64Data, mimeType, apiKey, prompt) {
+// 2. Groq Direct Call
+async function callGroqDirect(base64Data, mimeType, apiKey, prompt) {
   const url = 'https://api.groq.com/openai/v1/chat/completions';
   const requestBody = {
     model: "llama-3.2-11b-vision-preview",
@@ -140,24 +130,24 @@ async function callGroq(base64Data, mimeType, apiKey, prompt) {
 
   const textContent = await response.text();
   if (!response.ok) {
-    throw { status: response.status, message: `Groq API returned error: ${textContent}` };
+    throw new Error(`Groq API returned error: ${textContent}`);
   }
 
   const result = JSON.parse(textContent);
   const responseText = result.choices?.[0]?.message?.content;
   if (!responseText) {
-    throw { status: 500, message: "Empty choices response from Groq API" };
+    throw new Error("Empty choices response from Groq API");
   }
 
   return cleanAndParseJson(responseText);
 }
 
-// 3. OpenRouter Free Call
-async function callOpenRouter(base64Data, mimeType, apiKey, prompt) {
+// 3. OpenRouter Direct Call (with model rotation fallback)
+async function callOpenRouterDirect(base64Data, mimeType, apiKey, prompt, onStatusChange) {
   const url = 'https://openrouter.ai/api/v1/chat/completions';
   
   const openRouterModels = [
-    "openrouter/free",
+    "openrouter/free", // Automates free vision routing
     "google/gemini-2.5-flash:free",
     "meta-llama/llama-3.2-11b-vision-instruct:free",
     "meta-llama/llama-3.2-90b-vision-instruct:free",
@@ -168,7 +158,7 @@ async function callOpenRouter(base64Data, mimeType, apiKey, prompt) {
   let lastErr = null;
   for (const model of openRouterModels) {
     try {
-      console.log(`[VibeLens Server] Attempting OpenRouter model: ${model}`);
+      if (onStatusChange) onStatusChange(`Calling OpenRouter (${model})...`);
       const requestBody = {
         model: model,
         messages: [
@@ -193,7 +183,7 @@ async function callOpenRouter(base64Data, mimeType, apiKey, prompt) {
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${apiKey}`,
-          "HTTP-Referer": "http://localhost:5173",
+          "HTTP-Referer": window.location.origin,
           "X-Title": "VibeLens"
         },
         body: JSON.stringify(requestBody)
@@ -210,24 +200,18 @@ async function callOpenRouter(base64Data, mimeType, apiKey, prompt) {
         throw new Error(`Empty choices response for model ${model}`);
       }
 
-      console.log(`[VibeLens Server] OpenRouter Success using model: ${model}`);
       return cleanAndParseJson(responseText);
     } catch (e) {
-      console.warn(`[VibeLens Server] OpenRouter model ${model} failed:`, e.message || e);
+      console.warn(`[Client Direct] OpenRouter model ${model} failed:`, e.message || e);
       lastErr = e;
     }
   }
 
-  throw { status: 500, message: `All OpenRouter models failed. Last error: ${lastErr?.message || lastErr}` };
+  throw new Error(`All OpenRouter models failed. Last error: ${lastErr?.message || lastErr}`);
 }
 
-// Curate endpoint
-app.post('/api/curate', async (req, res) => {
-  const { image, mimeType, options } = req.body;
-  if (!image) {
-    return res.status(400).json({ success: false, message: "Missing image file" });
-  }
-
+// Client-side Direct Fallback router
+async function runClientSideFallback(base64Data, mimeType, options, onStatusChange) {
   const selectedCaptionLangs = [];
   if (options.captionsEnglish) selectedCaptionLangs.push("English");
   if (options.captionsTamil) selectedCaptionLangs.push("Tamil");
@@ -247,85 +231,105 @@ app.post('/api/curate', async (req, res) => {
 
 Ensure that your response conforms strictly to this JSON format and contains nothing else (no markdown wrappers like \`\`\`json, just raw JSON text):
 {
-  "captionsEnglish": ["caption 1", "caption 2", "caption 3"], // Populate ONLY if English is selected, otherwise empty array
-  "captionsTamil": ["caption 1", "caption 2", "caption 3"],   // Populate ONLY if Tamil is selected, otherwise empty array
+  "captionsEnglish": ["caption 1", "caption 2", "caption 3"],
+  "captionsTamil": ["caption 1", "caption 2", "caption 3"],
   "hashtags": ["#tag1", "#tag2", ...],
-  "songsTamil": ["Song Title - Artist", ...],                  // Populate ONLY if Tamil is selected, otherwise empty array
-  "songsEnglish": ["Song Title - Artist", ...],                // Populate ONLY if English is selected, otherwise empty array
-  "songsHindi": ["Song Title - Artist", ...],                  // Populate ONLY if Hindi is selected, otherwise empty array
-  "songsTamilChristian": ["Song Title - Artist", ...]          // Populate ONLY if Tamil Christian is selected, otherwise empty array
+  "songsTamil": ["Song Title - Artist", ...],
+  "songsEnglish": ["Song Title - Artist", ...],
+  "songsHindi": ["Song Title - Artist", ...],
+  "songsTamilChristian": ["Song Title - Artist", ...]
 }`;
 
-  // Read environment API keys securely (backward compatible with user's .env prefixes)
-  const geminiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
-  const groqKey = process.env.GROQ_API_KEY || process.env.VITE_GROQ_API_KEY;
-  const openrouterKey = process.env.OPENROUTER_API_KEY || process.env.VITE_OPENROUTER_API_KEY;
+  // Read Vite env variables
+  const geminiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  const groqKey = import.meta.env.VITE_GROQ_API_KEY;
+  const openrouterKey = import.meta.env.VITE_OPENROUTER_API_KEY;
 
+  // Build client direct providers list
   const providers = [];
-  
-  if (openrouterKey && openrouterKey.trim()) {
-    providers.push({
-      name: "OpenRouter Free API",
-      fn: () => callOpenRouter(image, mimeType || "image/jpeg", openrouterKey.trim(), systemPrompt)
-    });
-  }
 
   if (geminiKey && geminiKey.trim()) {
     providers.push({
       name: "Gemini Free API",
-      fn: () => callGemini(image, mimeType || "image/jpeg", geminiKey.trim(), systemPrompt)
+      fn: () => callGeminiDirect(base64Data, mimeType, geminiKey.trim(), systemPrompt)
     });
   }
-  
+
   if (groqKey && groqKey.trim()) {
     providers.push({
       name: "Groq Free API",
-      fn: () => callGroq(image, mimeType || "image/jpeg", groqKey.trim(), systemPrompt)
+      fn: () => callGroqDirect(base64Data, mimeType, groqKey.trim(), systemPrompt)
     });
   }
 
-  console.log(`[VibeLens Server] Received request. Found ${providers.length} primary providers in configuration.`);
+  if (openrouterKey && openrouterKey.trim()) {
+    providers.push({
+      name: "OpenRouter Free API",
+      fn: () => callOpenRouterDirect(base64Data, mimeType, openrouterKey.trim(), systemPrompt, onStatusChange)
+    });
+  }
 
-  // 1. Try standard free key-based APIs in order
+  let lastError = null;
   for (const provider of providers) {
     try {
-      console.log(`[VibeLens Server] Attempting request using: ${provider.name}`);
+      if (onStatusChange) onStatusChange(`Switching to direct client-side call via ${provider.name}...`);
       const result = await provider.fn();
       if (result) {
-        console.log(`[VibeLens Server] Success! Handled by: ${provider.name}`);
-        return res.json({ success: true, result });
+        return result;
       }
-    } catch (err) {
-      // Log errors securely (do not leak keys or full auth trace)
-      const isRetryable = isRetryableError(err.status, err.message);
-      console.warn(`[VibeLens Server] ${provider.name} failed. Status: ${err.status || 'unknown'}. Retryable: ${isRetryable}`);
-      console.warn(`[VibeLens Server] Error log summary: ${err.message ? err.message.substring(0, 150) : err}`);
-      
-      // If it is not retryable (e.g. invalid syntax or wrong key), we log it but continue fallback rotation anyway.
+    } catch (e) {
+      console.warn(`[Client Direct] Curation through ${provider.name} failed:`, e.message || e);
+      lastError = e;
     }
   }
 
-  // 2. Exhausted standard API fallback -> return failure
-  console.warn(`[VibeLens Server] All primary AI keys exhausted/failed.`);
-  return res.status(500).json({ 
-    success: false, 
-    message: "Primary free AI APIs are exhausted or rate-limited. Falling back to client-side direct request..." 
-  });
-});
-
-// Production: Serve frontend static assets from 'dist'
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, 'dist')));
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-  });
+  throw new Error(lastError?.message || "All client-side direct API curations failed.");
 }
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`[VibeLens Server] Running on http://localhost:${PORT}`);
-  console.log(`[VibeLens Server] Environment Keys Configured:`);
-  console.log(` - Gemini API Key: ${process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY ? "YES" : "NO"}`);
-  console.log(` - Groq API Key: ${process.env.GROQ_API_KEY || process.env.VITE_GROQ_API_KEY ? "YES" : "NO"}`);
-  console.log(` - OpenRouter API Key: ${process.env.OPENROUTER_API_KEY || process.env.VITE_OPENROUTER_API_KEY ? "YES" : "NO"}`);
-});
+// Main exported adapter that delegates to the backend proxy with client-side fallback
+export async function queryWithFallback(imageFile, customKey, options, onStatusChange) {
+  const base64Data = await fileToBase64(imageFile);
+  const mimeType = imageFile.type || 'image/jpeg';
+
+  try {
+    if (onStatusChange) onStatusChange("Connecting to VibeLens server...");
+    
+    const response = await fetch('/api/curate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        image: base64Data,
+        mimeType,
+        options
+      })
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data.success) {
+        return data.result;
+      }
+      // If server explicitly requested client fallback (or returned rate-limits/limitations)
+      if (onStatusChange) onStatusChange("Server API limits exhausted. Running direct client-side fallback...");
+      return await runClientSideFallback(base64Data, mimeType, options, onStatusChange);
+    } else {
+      const errText = await response.text();
+      let errData = {};
+      try { errData = JSON.parse(errText); } catch(e) {}
+      
+      if (onStatusChange) onStatusChange("Server error. Running direct client-side fallback...");
+      return await runClientSideFallback(base64Data, mimeType, options, onStatusChange);
+    }
+  } catch (e) {
+    console.warn("Server connection failed. Attempting direct client-side fallback:", e);
+    try {
+      if (onStatusChange) onStatusChange("Connection failed. Running direct client-side fallback...");
+      return await runClientSideFallback(base64Data, mimeType, options, onStatusChange);
+    } catch (directErr) {
+      console.error("All curation pipelines failed:", directErr);
+      throw new Error("Free AI usage is temporarily exhausted. Please try again tomorrow.");
+    }
+  }
+}

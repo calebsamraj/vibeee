@@ -4,7 +4,7 @@ import {
   Copy, Check, RefreshCw, Sparkles, 
   Trash2, Play, Disc
 } from 'lucide-react';
-import { queryWithFallback } from './utils/PuterApi';
+import { queryWithFallback } from './utils/CurationApi';
 import { fetchSongDetails } from './utils/MusicApi';
 import ThreeBackground from './components/ThreeBackground';
 import Toast from './components/Toast';
@@ -475,7 +475,7 @@ export default function App() {
             </h1>
           </div>
           <p className="text-xs text-slate-400 max-w-md">
-            AI Image Captioner, Hashtag Generator & Cross-Language Music Curator (Powered by Free Puter Fallbacks)
+            AI Image Captioner, Hashtag Generator & Cross-Language Music Curator (Powered by Free Gemini & Groq APIs)
           </p>
         </div>
 
@@ -954,7 +954,7 @@ export default function App() {
       {/* Footer */}
       <footer className="w-full text-center py-8 mt-12 border-t border-white/5 z-10">
         <p className="text-xs text-slate-600 flex items-center justify-center gap-1.5">
-          <span>Runs client-side. Powered by Free Puter AI Gateways.</span>
+          <span>Powered by Free Gemini, Groq & OpenRouter APIs.</span>
         </p>
       </footer>
     </div>
