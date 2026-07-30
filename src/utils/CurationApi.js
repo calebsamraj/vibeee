@@ -211,6 +211,44 @@ async function callOpenRouterDirect(base64Data, mimeType, apiKey, prompt, onStat
   throw new Error(`All OpenRouter models failed. Last error: ${lastErr?.message || lastErr}`);
 }
 
+// 4. DeepSeek Direct Call
+async function callDeepSeekDirect(apiKey, prompt) {
+  const url = 'https://api.deepseek.com/chat/completions';
+  const requestBody = {
+    model: "deepseek-chat",
+    messages: [
+      {
+        role: "user",
+        content: prompt
+      }
+    ],
+    response_format: { type: "json_object" },
+    temperature: 0.7
+  };
+
+  const response = await fetchWithTimeout(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`
+    },
+    body: JSON.stringify(requestBody)
+  }, 8000);
+
+  const textContent = await response.text();
+  if (!response.ok) {
+    throw new Error(`DeepSeek API returned error: ${textContent}`);
+  }
+
+  const result = JSON.parse(textContent);
+  const responseText = result.choices?.[0]?.message?.content;
+  if (!responseText) {
+    throw new Error("Empty choices response from DeepSeek API");
+  }
+
+  return cleanAndParseJson(responseText);
+}
+
 // Client-side Direct Fallback router
 async function runClientSideFallback(base64Data, mimeType, options, onStatusChange) {
   const selectedCaptionLangs = [];
@@ -245,6 +283,7 @@ Ensure that your response conforms strictly to this JSON format and contains not
   const geminiKey = import.meta.env.VITE_GEMINI_API_KEY;
   const groqKey = import.meta.env.VITE_GROQ_API_KEY;
   const openrouterKey = import.meta.env.VITE_OPENROUTER_API_KEY;
+  const deepseekKey = import.meta.env.VITE_DEEPSEEK_API_KEY;
 
   // Build client direct providers list
   const providers = [];
@@ -267,6 +306,13 @@ Ensure that your response conforms strictly to this JSON format and contains not
     providers.push({
       name: "OpenRouter Free API",
       fn: () => callOpenRouterDirect(base64Data, mimeType, openrouterKey.trim(), systemPrompt, onStatusChange)
+    });
+  }
+
+  if (deepseekKey && deepseekKey.trim()) {
+    providers.push({
+      name: "DeepSeek API",
+      fn: () => callDeepSeekDirect(deepseekKey.trim(), systemPrompt)
     });
   }
 

@@ -222,6 +222,44 @@ async function callOpenRouter(base64Data, mimeType, apiKey, prompt) {
   throw { status: 500, message: `All OpenRouter models failed. Last error: ${lastErr?.message || lastErr}` };
 }
 
+// 4. DeepSeek API Call
+async function callDeepSeek(apiKey, prompt) {
+  const url = 'https://api.deepseek.com/chat/completions';
+  const requestBody = {
+    model: "deepseek-chat",
+    messages: [
+      {
+        role: "user",
+        content: prompt
+      }
+    ],
+    response_format: { type: "json_object" },
+    temperature: 0.7
+  };
+
+  const response = await fetchWithTimeout(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`
+    },
+    body: JSON.stringify(requestBody)
+  }, 8000);
+
+  const textContent = await response.text();
+  if (!response.ok) {
+    throw { status: response.status, message: `DeepSeek API returned error: ${textContent}` };
+  }
+
+  const result = JSON.parse(textContent);
+  const responseText = result.choices?.[0]?.message?.content;
+  if (!responseText) {
+    throw { status: 500, message: "Empty choices response from DeepSeek API" };
+  }
+
+  return cleanAndParseJson(responseText);
+}
+
 // Curate endpoint
 app.post('/api/curate', async (req, res) => {
   const { image, mimeType, options } = req.body;
@@ -261,6 +299,7 @@ Ensure that your response conforms strictly to this JSON format and contains not
   const geminiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
   const groqKey = process.env.GROQ_API_KEY || process.env.VITE_GROQ_API_KEY;
   const openrouterKey = process.env.OPENROUTER_API_KEY || process.env.VITE_OPENROUTER_API_KEY;
+  const deepseekKey = process.env.DEEPSEEK_API_KEY || process.env.VITE_DEEPSEEK_API_KEY;
 
   const providers = [];
   
@@ -282,6 +321,13 @@ Ensure that your response conforms strictly to this JSON format and contains not
     providers.push({
       name: "Groq Free API",
       fn: () => callGroq(image, mimeType || "image/jpeg", groqKey.trim(), systemPrompt)
+    });
+  }
+
+  if (deepseekKey && deepseekKey.trim()) {
+    providers.push({
+      name: "DeepSeek API",
+      fn: () => callDeepSeek(deepseekKey.trim(), systemPrompt)
     });
   }
 
