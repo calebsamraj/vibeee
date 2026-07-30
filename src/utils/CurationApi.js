@@ -288,6 +288,13 @@ Ensure that your response conforms strictly to this JSON format and contains not
   // Build client direct providers list
   const providers = [];
 
+  if (deepseekKey && deepseekKey.trim()) {
+    providers.push({
+      name: "DeepSeek API",
+      fn: () => callDeepSeekDirect(deepseekKey.trim(), systemPrompt)
+    });
+  }
+
   if (geminiKey && geminiKey.trim()) {
     providers.push({
       name: "Gemini Free API",
@@ -306,13 +313,6 @@ Ensure that your response conforms strictly to this JSON format and contains not
     providers.push({
       name: "OpenRouter Free API",
       fn: () => callOpenRouterDirect(base64Data, mimeType, openrouterKey.trim(), systemPrompt, onStatusChange)
-    });
-  }
-
-  if (deepseekKey && deepseekKey.trim()) {
-    providers.push({
-      name: "DeepSeek API",
-      fn: () => callDeepSeekDirect(deepseekKey.trim(), systemPrompt)
     });
   }
 

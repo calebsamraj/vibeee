@@ -303,10 +303,10 @@ Ensure that your response conforms strictly to this JSON format and contains not
 
   const providers = [];
   
-  if (openrouterKey && openrouterKey.trim()) {
+  if (deepseekKey && deepseekKey.trim()) {
     providers.push({
-      name: "OpenRouter Free API",
-      fn: () => callOpenRouter(image, mimeType || "image/jpeg", openrouterKey.trim(), systemPrompt)
+      name: "DeepSeek API",
+      fn: () => callDeepSeek(deepseekKey.trim(), systemPrompt)
     });
   }
 
@@ -324,10 +324,10 @@ Ensure that your response conforms strictly to this JSON format and contains not
     });
   }
 
-  if (deepseekKey && deepseekKey.trim()) {
+  if (openrouterKey && openrouterKey.trim()) {
     providers.push({
-      name: "DeepSeek API",
-      fn: () => callDeepSeek(deepseekKey.trim(), systemPrompt)
+      name: "OpenRouter Free API",
+      fn: () => callOpenRouter(image, mimeType || "image/jpeg", openrouterKey.trim(), systemPrompt)
     });
   }
 
