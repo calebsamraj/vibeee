@@ -634,3 +634,5 @@ app.listen(PORT, () => {
   console.log(` - Groq API Key: ${process.env.GROQ_API_KEY || process.env.VITE_GROQ_API_KEY ? "YES" : "NO"}`);
   console.log(` - OpenRouter API Key: ${process.env.OPENROUTER_API_KEY || process.env.VITE_OPENROUTER_API_KEY ? "YES" : "NO"}`);
 });
+
+module.exports = app;
