@@ -19,13 +19,23 @@ function fileToBase64(file) {
 // Clean markdown blocks and parse JSON
 function cleanAndParseJson(text) {
   let cleaned = text.trim();
-  if (cleaned.startsWith('```')) {
-    cleaned = cleaned.replace(/^```(json)?/, '');
+  
+  // Find first '{' and last '}' to extract only the valid JSON block
+  const startIdx = cleaned.indexOf('{');
+  const endIdx = cleaned.lastIndexOf('}');
+  
+  if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+    cleaned = cleaned.substring(startIdx, endIdx + 1);
+  } else {
+    // Fallback standard clean
+    if (cleaned.startsWith('```')) {
+      cleaned = cleaned.replace(/^```(json)?/, '');
+    }
+    if (cleaned.endsWith('```')) {
+      cleaned = cleaned.substring(0, cleaned.length - 3);
+    }
+    cleaned = cleaned.trim();
   }
-  if (cleaned.endsWith('```')) {
-    cleaned = cleaned.substring(0, cleaned.length - 3);
-  }
-  cleaned = cleaned.trim();
   
   try {
     return JSON.parse(cleaned);

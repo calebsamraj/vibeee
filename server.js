@@ -23,9 +23,13 @@ app.get('/api/proxy-image', async (req, res) => {
     return res.status(400).send('Missing url parameter');
   }
   try {
-    const response = await fetch(imageUrl);
+    const response = await fetch(imageUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      }
+    });
     if (!response.ok) {
-      throw new Error(`Failed to fetch image: ${response.statusText}`);
+      throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
     }
     const arrayBuffer = await response.arrayBuffer();
     const contentType = response.headers.get('content-type') || 'image/jpeg';
@@ -40,14 +44,30 @@ app.get('/api/proxy-image', async (req, res) => {
 // Helper to clean markdown block wrappers and parse JSON
 function cleanAndParseJson(text) {
   let cleaned = text.trim();
-  if (cleaned.startsWith('```')) {
-    cleaned = cleaned.replace(/^```(json)?/, '');
+  
+  // Find first '{' and last '}' to extract only the valid JSON block
+  const startIdx = cleaned.indexOf('{');
+  const endIdx = cleaned.lastIndexOf('}');
+  
+  if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+    cleaned = cleaned.substring(startIdx, endIdx + 1);
+  } else {
+    // Fallback standard clean
+    if (cleaned.startsWith('```')) {
+      cleaned = cleaned.replace(/^```(json)?/, '');
+    }
+    if (cleaned.endsWith('```')) {
+      cleaned = cleaned.substring(0, cleaned.length - 3);
+    }
+    cleaned = cleaned.trim();
   }
-  if (cleaned.endsWith('```')) {
-    cleaned = cleaned.substring(0, cleaned.length - 3);
+  
+  try {
+    return JSON.parse(cleaned);
+  } catch (e) {
+    console.error("Failed to parse JSON:", cleaned);
+    throw new Error(`AI returned invalid JSON: ${e.message}`);
   }
-  cleaned = cleaned.trim();
-  return JSON.parse(cleaned);
 }
 
 // Timeout helper (30 seconds limit)
