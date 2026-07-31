@@ -55,11 +55,41 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [copiedCaptionIndex, setCopiedCaptionIndex] = useState(null);
   const [copiedHashtags, setCopiedHashtags] = useState(false);
+  const [floatingEmojis, setFloatingEmojis] = useState([]);
   
   const fileInputRef = useRef(null);
   const dragRef = useRef(null);
   const audioRef = useRef(null);
   const bgAudioRef = useRef(null);
+
+  // Trigger music emoji burst
+  const triggerEmojiBurst = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX || (rect.left + rect.width / 2);
+    const clickY = e.clientY || (rect.top + rect.height / 2);
+
+    const emojisList = ["🎵", "🎶", "🎸", "🎹", "🎧", "✨", "🔥"];
+    const newBurst = Array.from({ length: 8 }).map((_, i) => {
+      const angle = (Math.PI * 2 * i) / 8 + (Math.random() - 0.5) * 0.5;
+      const distance = 40 + Math.random() * 40;
+      return {
+        id: `${Date.now()}-${i}-${Math.random()}`,
+        emoji: emojisList[Math.floor(Math.random() * emojisList.length)],
+        x: clickX,
+        y: clickY,
+        targetX: clickX + Math.cos(angle) * distance,
+        targetY: clickY + Math.sin(angle) * distance - 80 - Math.random() * 50,
+        rotation: (Math.random() - 0.5) * 60,
+      };
+    });
+
+    setFloatingEmojis((prev) => [...prev, ...newBurst]);
+
+    // Clean up after 1 second
+    setTimeout(() => {
+      setFloatingEmojis((prev) => prev.filter((item) => !newBurst.find(n => n.id === item.id)));
+    }, 1000);
+  };
 
   // Clean up audio on unmount
   useEffect(() => {
@@ -359,7 +389,10 @@ export default function App() {
         <div className="flex items-center gap-3 min-w-0 flex-1">
           {/* Album artwork container */}
           <div 
-            onClick={() => hasPreview && togglePlay(meta.previewUrl)}
+            onClick={(e) => {
+              triggerEmojiBurst(e);
+              hasPreview && togglePlay(meta.previewUrl);
+            }}
             className={`w-12 h-12 rounded-xl border border-white/5 flex items-center justify-center shrink-0 relative overflow-hidden group-hover/song:shadow-md transition-all duration-300 ${
               hasPreview ? 'cursor-pointer' : ''
             } ${
@@ -413,7 +446,10 @@ export default function App() {
         <div className="flex items-center gap-2">
           {hasPreview ? (
             <button
-              onClick={() => togglePlay(meta.previewUrl)}
+              onClick={(e) => {
+                triggerEmojiBurst(e);
+                togglePlay(meta.previewUrl);
+              }}
               className={`h-10 px-3 md:px-4 rounded-xl border transition-all text-xs font-semibold cursor-pointer flex items-center justify-center ${
                 isCurrentPlaying 
                   ? 'bg-cyan-950/40 border-cyan-500/30 text-cyan-400' 
@@ -433,6 +469,9 @@ export default function App() {
             href={meta.trackViewUrl || `https://www.youtube.com/results?search_query=${encodeURIComponent(song)}`}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={(e) => {
+              triggerEmojiBurst(e);
+            }}
             className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 hover:border-cyan-500/30 text-slate-400 hover:text-cyan-400 transition-colors shrink-0 flex items-center justify-center"
             title={meta.trackViewUrl ? "Listen to Full Track" : "Listen on YouTube"}
           >
@@ -748,18 +787,76 @@ export default function App() {
         <section className="lg:col-span-7 flex flex-col gap-6">
           {/* Loading States */}
           {loadingStep && (
-            <div className="glass-panel p-12 rounded-3xl flex flex-col items-center justify-center text-center gap-6 min-h-[400px] animate-slide-in">
-              <div className="relative">
-                <div className="w-24 h-24 rounded-full border-4 border-slate-800 border-t-cyan-500 border-r-teal-500 animate-spin"></div>
-                <Disc className="w-10 h-10 text-cyan-400 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-spin-slow" />
+            <div className="glass-panel p-8 md:p-12 rounded-3xl flex flex-col items-center justify-center text-center gap-8 min-h-[450px] animate-slide-in border border-cyan-500/20 bg-gradient-to-b from-slate-900/60 to-slate-950/80 shadow-glow-cyan/5">
+              {/* Spinning Disc with Pulse Rings */}
+              <div className="relative flex items-center justify-center">
+                <div className="absolute w-32 h-32 rounded-full bg-cyan-500/10 animate-ping duration-1000"></div>
+                <div className="absolute w-28 h-28 rounded-full bg-teal-500/5 animate-pulse duration-700"></div>
+                <div className="w-24 h-24 rounded-full border-4 border-slate-800 border-t-cyan-400 border-r-pink-400 animate-spin flex items-center justify-center bg-slate-950">
+                  <Disc className="w-10 h-10 text-cyan-400 animate-spin-slow" />
+                </div>
               </div>
-              <div className="flex flex-col gap-2 max-w-sm">
-                <h3 className="text-lg font-semibold text-slate-100">
-                  {loadingStatus}
-                </h3>
-                <p className="text-sm text-slate-400">
-                  Analyzing image features, styling social captions, and curating your custom playlist across languages.
-                </p>
+              
+              <div className="flex flex-col gap-6 max-w-md w-full">
+                <div className="flex flex-col gap-2">
+                  <h3 className="text-xl font-bold text-slate-100 text-glow-cyan">
+                    {loadingStatus}
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Your photo's aesthetic is being analyzed across multiple AI models.
+                  </p>
+                </div>
+
+                {/* Steps Checklist */}
+                <div className="flex flex-col gap-2.5 text-left bg-slate-950/40 p-4.5 rounded-2xl border border-white/5">
+                  {[
+                    { key: "Analyzing visual aesthetic and tone...", label: "Visual Tone & Aesthetic Analysis" },
+                    { key: "Running visual mood and theme analysis...", label: "Visual Mood & Theme Extraction" },
+                    { key: "Generating captions and song matches...", label: "Social Media Caption Styling" },
+                    { key: "Aligning playlist track selections...", label: "Curating Music Playlist Recommendations" },
+                    { key: "Assembling final curation payload...", label: "Assembling Final Curation Package" }
+                  ].map((step, idx) => {
+                    const statusList = [
+                      "Analyzing visual aesthetic and tone...",
+                      "Running visual mood and theme analysis...",
+                      "Generating captions and song matches...",
+                      "Aligning playlist track selections...",
+                      "Assembling final curation payload..."
+                    ];
+                    const currentIdx = statusList.indexOf(loadingStatus);
+                    const isCompleted = idx < currentIdx;
+                    const isCurrent = idx === currentIdx;
+                    
+                    return (
+                      <div key={idx} className="flex items-center gap-3 transition-all duration-300">
+                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 border text-[10px] font-bold ${
+                          isCompleted 
+                            ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
+                            : isCurrent
+                              ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400 animate-pulse'
+                              : 'bg-slate-900 border-slate-800 text-slate-600'
+                        }`}>
+                          {isCompleted ? "✓" : idx + 1}
+                        </div>
+                        <span className={`text-xs font-semibold ${
+                          isCompleted 
+                            ? 'text-slate-400 line-through decoration-slate-600/40'
+                            : isCurrent
+                              ? 'text-cyan-300 font-bold text-glow-cyan animate-pulse-soft'
+                              : 'text-slate-500'
+                        }`}>
+                          {step.label}
+                        </span>
+                        {isCurrent && (
+                          <span className="flex h-2 w-2 relative ml-auto">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           )}
@@ -1042,6 +1139,22 @@ export default function App() {
           <span>Powered by Free Gemini, Groq & OpenRouter APIs.</span>
         </p>
       </footer>
+      {/* Floating Emojis */}
+      {floatingEmojis.map((item) => (
+        <span
+          key={item.id}
+          className="fixed pointer-events-none select-none text-xl z-50 animate-emoji-float"
+          style={{
+            left: item.x,
+            top: item.y,
+            '--target-x': `${item.targetX - item.x}px`,
+            '--target-y': `${item.targetY - item.y}px`,
+            '--rotation': `${item.rotation}deg`,
+          }}
+        >
+          {item.emoji}
+        </span>
+      ))}
     </div>
   );
 }
