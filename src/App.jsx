@@ -1152,8 +1152,8 @@ export default function App() {
                   50% { box-shadow: 0 0 20px rgba(52, 211, 153, 0.65); border-color: rgba(52, 211, 153, 0.8); }
                 }
                 @keyframes visor-sweep {
-                  0%, 100% { cx: 78px; fill: #10b981; }
-                  50% { cx: 122px; fill: #06b6d4; }
+                  0%, 100% { cx: 75px; fill: #3b82f6; }
+                  50% { cx: 125px; fill: #60a5fa; }
                 }
                 @keyframes voice-wave {
                   0%, 100% { transform: translate(82px, 112px) scaleY(1); }
@@ -1201,61 +1201,74 @@ export default function App() {
                 {/* Visual Scanner Arena (Robot + Photo Side-by-Side on Desktop, stacked on Mobile) */}
                 <div className="w-full flex flex-col sm:flex-row items-center justify-center gap-4 md:gap-6 relative my-auto">
                   
-                  {/* Animated Humanoid Robot SVG Head */}
+                  {/* Animated Humanoid Robot SVG Head (Chitti Style) */}
                   <div className="relative z-10 shrink-0">
-                    <svg viewBox="0 0 200 200" className="w-32 h-32 md:w-36 md:h-36 drop-shadow-[0_0_12px_rgba(6,182,212,0.35)]">
+                    <svg viewBox="0 0 200 200" className="w-32 h-32 md:w-36 md:h-36 drop-shadow-[0_0_15px_rgba(59,130,246,0.45)]">
                       <defs>
-                        <linearGradient id="roboGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                          <stop offset="0%" stopColor="#06b6d4" />
-                          <stop offset="50%" stopColor="#10b981" />
-                          <stop offset="100%" stopColor="#3b82f6" />
+                        <linearGradient id="chittiMetallic" x1="0%" y1="0%" x2="0%" y2="100%">
+                          <stop offset="0%" stopColor="#f8fafc" />
+                          <stop offset="30%" stopColor="#cbd5e1" />
+                          <stop offset="70%" stopColor="#94a3b8" />
+                          <stop offset="100%" stopColor="#475569" />
                         </linearGradient>
-                        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                        <linearGradient id="chittiHair" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stopColor="#1e293b" />
+                          <stop offset="100%" stopColor="#0f172a" />
+                        </linearGradient>
+                        <filter id="blueGlow" x="-20%" y="-20%" width="140%" height="140%">
                           <feGaussianBlur stdDeviation="3" result="blur" />
                           <feComposite in="SourceGraphic" in2="blur" operator="over" />
                         </filter>
                       </defs>
 
                       {/* Radar rings */}
-                      <circle cx="100" cy="100" r="95" fill="none" stroke="rgba(6, 182, 212, 0.08)" strokeWidth="1" />
-                      <circle cx="100" cy="100" r="88" fill="none" stroke="rgba(16, 185, 129, 0.06)" strokeWidth="1" strokeDasharray="4 4" className="animate-spin-slow" />
-
-                      {/* Side ears */}
-                      <rect x="42" y="90" width="6" height="20" rx="2" fill="#1e293b" stroke="url(#roboGrad)" strokeWidth="1.5" />
-                      <rect x="152" y="90" width="6" height="20" rx="2" fill="#1e293b" stroke="url(#roboGrad)" strokeWidth="1.5" />
+                      <circle cx="100" cy="100" r="95" fill="none" stroke="rgba(59, 130, 246, 0.12)" strokeWidth="1" />
+                      <circle cx="100" cy="100" r="88" fill="none" stroke="rgba(59, 130, 246, 0.08)" strokeWidth="1" strokeDasharray="6 3" className="animate-spin-slow" />
 
                       {/* Neck */}
-                      <path d="M86 145 L114 145 L118 165 L82 165 Z" fill="#0f172a" stroke="url(#roboGrad)" strokeWidth="1.5" />
-                      <line x1="92" y1="152" x2="108" y2="152" stroke="rgba(6, 182, 212, 0.4)" strokeWidth="2" />
-                      <line x1="92" y1="158" x2="108" y2="158" stroke="rgba(16, 185, 129, 0.4)" strokeWidth="2" />
+                      <path d="M85 140 L115 140 L120 170 L80 170 Z" fill="url(#chittiMetallic)" stroke="#475569" strokeWidth="1.5" />
+                      {/* Neck Stripe */}
+                      <rect x="83" y="148" width="34" height="6" rx="1" fill="#020617" stroke="#3b82f6" strokeWidth="1" />
+                      <rect x="86" y="150" width="28" height="2" fill="#3b82f6" filter="url(#blueGlow)" className="animate-pulse" />
 
-                      {/* Head Chassis */}
-                      <path d="M60 50 L140 50 L145 105 Q145 142 100 142 Q55 142 55 105 Z" fill="#0f172a" stroke="url(#roboGrad)" strokeWidth="2" />
-                      {/* Face Plate */}
-                      <path d="M68 60 L132 60 L135 100 Q135 132 100 132 Q65 132 65 100 Z" fill="#020617" stroke="rgba(6, 182, 212, 0.2)" strokeWidth="1" />
+                      {/* Side ears */}
+                      <rect x="42" y="85" width="6" height="25" rx="2" fill="#334155" stroke="#64748b" strokeWidth="1" />
+                      <rect x="152" y="85" width="6" height="25" rx="2" fill="#334155" stroke="#64748b" strokeWidth="1" />
+                      
+                      {/* Chitti Flat Angular Hair Cut */}
+                      <path d="M58 50 L142 50 L132 26 L68 26 Z" fill="url(#chittiHair)" stroke="#3b82f6" strokeWidth="1.5" />
+                      <line x1="80" y1="26" x2="76" y2="50" stroke="#3b82f6" strokeWidth="1.5" strokeOpacity="0.5" />
+                      <line x1="100" y1="26" x2="100" y2="50" stroke="#3b82f6" strokeWidth="1.5" strokeOpacity="0.5" />
+                      <line x1="120" y1="26" x2="124" y2="50" stroke="#3b82f6" strokeWidth="1.5" strokeOpacity="0.5" />
 
-                      {/* Glowing Brain Matrix */}
-                      <circle cx="100" cy="68" r="2.5" fill="#06b6d4" className="animate-pulse" />
-                      <line x1="100" y1="70" x2="100" y2="74" stroke="rgba(6, 182, 212, 0.4)" strokeWidth="1" />
-                      <circle cx="84" cy="66" r="1.5" fill="#10b981" />
-                      <line x1="84" y1="67" x2="94" y2="78" stroke="rgba(16, 185, 129, 0.3)" strokeWidth="1" />
-                      <circle cx="116" cy="66" r="1.5" fill="#3b82f6" />
-                      <line x1="116" y1="67" x2="106" y2="78" stroke="rgba(59, 130, 246, 0.3)" strokeWidth="1" />
+                      {/* Humanoid Metallic Face Chassis */}
+                      <path d="M55 50 L145 50 L148 105 Q148 140 100 142 Q52 140 52 105 Z" fill="url(#chittiMetallic)" stroke="#334155" strokeWidth="2" />
+                      {/* Face Inner Plate */}
+                      <path d="M64 56 L136 56 L138 98 Q138 128 100 130 Q62 128 62 98 Z" fill="#1e293b" stroke="rgba(255, 255, 255, 0.15)" strokeWidth="1" />
 
-                      {/* Visor Eye Plate */}
-                      <rect x="72" y="78" width="56" height="16" rx="4" fill="#090d16" stroke="rgba(6, 182, 212, 0.3)" strokeWidth="1" />
+                      {/* Red Memory Chip indicator on Forehead */}
+                      <rect x="94" y="60" width="12" height="6" rx="1" fill="#090d16" stroke="#ef4444" strokeWidth="1" />
+                      <circle cx="100" cy="63" r="2" fill="#ef4444" filter="url(#blueGlow)" className="animate-pulse" />
+
+                      {/* Cheek panel lines */}
+                      <path d="M 66,105 Q 85,115 100,118 Q 115,115 134,105" fill="none" stroke="rgba(148, 163, 184, 0.3)" strokeWidth="1.5" />
+                      <line x1="75" y1="65" x2="70" y2="70" stroke="rgba(148, 163, 184, 0.4)" strokeWidth="1" />
+                      <line x1="125" y1="65" x2="130" y2="70" stroke="rgba(148, 163, 184, 0.4)" strokeWidth="1" />
+
+                      {/* Chitti Blue Visor Eye Band */}
+                      <rect x="70" y="74" width="60" height="16" rx="2" fill="#020617" stroke="#3b82f6" strokeWidth="1.5" />
                       
                       {/* Visor Scanning Dot */}
-                      <circle cx="100" cy="86" r="3.5" fill="#10b981" filter="url(#glow)" className="animate-visor-sweep" />
+                      <circle cx="100" cy="82" r="3" fill="#3b82f6" filter="url(#blueGlow)" className="animate-visor-sweep" />
 
-                      {/* Speaking Waveform */}
-                      <g className="animate-voice-wave" transform="translate(82, 112)">
-                        <rect x="0" y="-3" width="2.5" height="10" rx="1" fill="#10b981" />
-                        <rect x="5" y="-6" width="2.5" height="16" rx="1" fill="#06b6d4" />
-                        <rect x="10" y="-9" width="2.5" height="22" rx="1" fill="#3b82f6" />
-                        <rect x="15" y="-9" width="2.5" height="22" rx="1" fill="#10b981" />
-                        <rect x="20" y="-6" width="2.5" height="16" rx="1" fill="#06b6d4" />
-                        <rect x="25" y="-3" width="2.5" height="10" rx="1" fill="#3b82f6" />
+                      {/* Speaking Waveform (Blue/Cyan/Light Blue) */}
+                      <g className="animate-voice-wave" transform="translate(82, 108)">
+                        <rect x="0" y="-3" width="2.5" height="10" rx="1" fill="#3b82f6" />
+                        <rect x="5" y="-6" width="2.5" height="16" rx="1" fill="#60a5fa" />
+                        <rect x="10" y="-9" width="2.5" height="22" rx="1" fill="#93c5fd" />
+                        <rect x="15" y="-9" width="2.5" height="22" rx="1" fill="#3b82f6" />
+                        <rect x="20" y="-6" width="2.5" height="16" rx="1" fill="#60a5fa" />
+                        <rect x="25" y="-3" width="2.5" height="10" rx="1" fill="#93c5fd" />
                       </g>
                     </svg>
                   </div>
