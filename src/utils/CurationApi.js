@@ -459,9 +459,19 @@ async function runClientSideFallback(base64Data, mimeType, options, onStatusChan
 
   const songEraLabel = options.songEra ? `${options.songEra} Hits` : "Latest Hits";
 
+  let captionStyleInstruction = "Each caption should be short and creative (1-2 lines).";
+  if (options.captionStyle === 'one_line') {
+    captionStyleInstruction = "Each generated caption must be exactly 1 line long (a single sentence or short line).";
+  } else if (options.captionStyle === 'two_lines') {
+    captionStyleInstruction = "Each generated caption must be exactly 2 lines long (two short sentences or lines).";
+  } else if (options.captionStyle === 'three_words') {
+    captionStyleInstruction = "Each generated caption must consist of exactly 3 words (e.g., 'Retro cozy vibes').";
+  }
+
   const systemPrompt = `You are a social media and music curation expert. Your task is to analyze the provided image and generate:
 1. For each selected language for captions/quotes (${selectedCaptionLangs.join(', ')}):
    Generate 3 highly creative, engaging, and different styles of social media captions or quotes (e.g., one witty, one poetic/quote, one direct/engaging) in that language.
+   CRITICAL REQUIREMENT: ${captionStyleInstruction}
 2. 5-8 relevant, trending hashtags (including standard ones and some specific to the vibe of the image).
 3. For each selected language for songs (${selectedSongLangs.join(', ')}):
    Generate 2-3 song recommendations (Format: "Song Title - Artist") that specifically match the background vibe, visual atmosphere, setting, and aesthetic tone of the image. The songs MUST belong to the following era/generation: ${songEraLabel}.

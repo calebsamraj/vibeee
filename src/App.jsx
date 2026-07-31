@@ -46,7 +46,8 @@ export default function App() {
     songsEnglish: true,
     songsHindi: true,
     songsTamilChristian: true,
-    songEra: 'latest' // 'latest', '2000s', '90s', '80s'
+    songEra: 'latest', // 'latest', '2000s', '90s', '80s'
+    captionStyle: 'one_line' // 'one_line', 'two_lines', 'three_words'
   });
   
   const [songMetadata, setSongMetadata] = useState({});
@@ -708,6 +709,19 @@ export default function App() {
                       Tamil
                     </label>
                   </div>
+                </div>
+
+                <div>
+                  <span className="text-xs text-slate-400 font-medium block mb-2">Caption Length / Format:</span>
+                  <select
+                    value={options.captionStyle}
+                    onChange={(e) => setOptions({ ...options, captionStyle: e.target.value })}
+                    className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-200 text-sm rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all cursor-pointer font-medium"
+                  >
+                    <option value="one_line">1 Line Caption (Clean & descriptive)</option>
+                    <option value="two_lines">2 Lines Caption (Engaging & detailed)</option>
+                    <option value="three_words">3 Words Caption (Minimalist & aesthetic)</option>
+                  </select>
                 </div>
 
                 <div>
