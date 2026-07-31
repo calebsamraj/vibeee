@@ -1201,76 +1201,16 @@ export default function App() {
                 {/* Visual Scanner Arena (Robot + Photo Side-by-Side on Desktop, stacked on Mobile) */}
                 <div className="w-full flex flex-col sm:flex-row items-center justify-center gap-4 md:gap-6 relative my-auto">
                   
-                  {/* Animated Humanoid Robot SVG Head (Chitti Style) */}
-                  <div className="relative z-10 shrink-0">
-                    <svg viewBox="0 0 200 200" className="w-32 h-32 md:w-36 md:h-36 drop-shadow-[0_0_15px_rgba(59,130,246,0.45)]">
-                      <defs>
-                        <linearGradient id="chittiMetallic" x1="0%" y1="0%" x2="0%" y2="100%">
-                          <stop offset="0%" stopColor="#f8fafc" />
-                          <stop offset="30%" stopColor="#cbd5e1" />
-                          <stop offset="70%" stopColor="#94a3b8" />
-                          <stop offset="100%" stopColor="#475569" />
-                        </linearGradient>
-                        <linearGradient id="chittiHair" x1="0%" y1="0%" x2="100%" y2="100%">
-                          <stop offset="0%" stopColor="#1e293b" />
-                          <stop offset="100%" stopColor="#0f172a" />
-                        </linearGradient>
-                        <filter id="blueGlow" x="-20%" y="-20%" width="140%" height="140%">
-                          <feGaussianBlur stdDeviation="3" result="blur" />
-                          <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                        </filter>
-                      </defs>
-
-                      {/* Radar rings */}
-                      <circle cx="100" cy="100" r="95" fill="none" stroke="rgba(59, 130, 246, 0.12)" strokeWidth="1" />
-                      <circle cx="100" cy="100" r="88" fill="none" stroke="rgba(59, 130, 246, 0.08)" strokeWidth="1" strokeDasharray="6 3" className="animate-spin-slow" />
-
-                      {/* Neck */}
-                      <path d="M85 140 L115 140 L120 170 L80 170 Z" fill="url(#chittiMetallic)" stroke="#475569" strokeWidth="1.5" />
-                      {/* Neck Stripe */}
-                      <rect x="83" y="148" width="34" height="6" rx="1" fill="#020617" stroke="#3b82f6" strokeWidth="1" />
-                      <rect x="86" y="150" width="28" height="2" fill="#3b82f6" filter="url(#blueGlow)" className="animate-pulse" />
-
-                      {/* Side ears */}
-                      <rect x="42" y="85" width="6" height="25" rx="2" fill="#334155" stroke="#64748b" strokeWidth="1" />
-                      <rect x="152" y="85" width="6" height="25" rx="2" fill="#334155" stroke="#64748b" strokeWidth="1" />
-                      
-                      {/* Chitti Flat Angular Hair Cut */}
-                      <path d="M58 50 L142 50 L132 26 L68 26 Z" fill="url(#chittiHair)" stroke="#3b82f6" strokeWidth="1.5" />
-                      <line x1="80" y1="26" x2="76" y2="50" stroke="#3b82f6" strokeWidth="1.5" strokeOpacity="0.5" />
-                      <line x1="100" y1="26" x2="100" y2="50" stroke="#3b82f6" strokeWidth="1.5" strokeOpacity="0.5" />
-                      <line x1="120" y1="26" x2="124" y2="50" stroke="#3b82f6" strokeWidth="1.5" strokeOpacity="0.5" />
-
-                      {/* Humanoid Metallic Face Chassis */}
-                      <path d="M55 50 L145 50 L148 105 Q148 140 100 142 Q52 140 52 105 Z" fill="url(#chittiMetallic)" stroke="#334155" strokeWidth="2" />
-                      {/* Face Inner Plate */}
-                      <path d="M64 56 L136 56 L138 98 Q138 128 100 130 Q62 128 62 98 Z" fill="#1e293b" stroke="rgba(255, 255, 255, 0.15)" strokeWidth="1" />
-
-                      {/* Red Memory Chip indicator on Forehead */}
-                      <rect x="94" y="60" width="12" height="6" rx="1" fill="#090d16" stroke="#ef4444" strokeWidth="1" />
-                      <circle cx="100" cy="63" r="2" fill="#ef4444" filter="url(#blueGlow)" className="animate-pulse" />
-
-                      {/* Cheek panel lines */}
-                      <path d="M 66,105 Q 85,115 100,118 Q 115,115 134,105" fill="none" stroke="rgba(148, 163, 184, 0.3)" strokeWidth="1.5" />
-                      <line x1="75" y1="65" x2="70" y2="70" stroke="rgba(148, 163, 184, 0.4)" strokeWidth="1" />
-                      <line x1="125" y1="65" x2="130" y2="70" stroke="rgba(148, 163, 184, 0.4)" strokeWidth="1" />
-
-                      {/* Chitti Blue Visor Eye Band */}
-                      <rect x="70" y="74" width="60" height="16" rx="2" fill="#020617" stroke="#3b82f6" strokeWidth="1.5" />
-                      
-                      {/* Visor Scanning Dot */}
-                      <circle cx="100" cy="82" r="3" fill="#3b82f6" filter="url(#blueGlow)" className="animate-visor-sweep" />
-
-                      {/* Speaking Waveform (Blue/Cyan/Light Blue) */}
-                      <g className="animate-voice-wave" transform="translate(82, 108)">
-                        <rect x="0" y="-3" width="2.5" height="10" rx="1" fill="#3b82f6" />
-                        <rect x="5" y="-6" width="2.5" height="16" rx="1" fill="#60a5fa" />
-                        <rect x="10" y="-9" width="2.5" height="22" rx="1" fill="#93c5fd" />
-                        <rect x="15" y="-9" width="2.5" height="22" rx="1" fill="#3b82f6" />
-                        <rect x="20" y="-6" width="2.5" height="16" rx="1" fill="#60a5fa" />
-                        <rect x="25" y="-3" width="2.5" height="10" rx="1" fill="#93c5fd" />
-                      </g>
-                    </svg>
+                  {/* Realistic Chitti Robot Avatar */}
+                  <div className="relative z-10 shrink-0 w-32 h-32 md:w-36 md:h-36 rounded-2xl border-2 border-blue-500/50 shadow-[0_0_15px_rgba(59,130,246,0.35)] overflow-hidden bg-slate-900 flex items-center justify-center">
+                    <img 
+                      src="/humanoid_scanner.jpg" 
+                      alt="Chitti Robot" 
+                      className="w-full h-full object-cover scale-102 transition-transform duration-500"
+                    />
+                    
+                    {/* Futuristic visor scan line over Chitti's eyes */}
+                    <div className="absolute top-[38%] left-0 right-0 h-[2.5px] bg-cyan-400 shadow-[0_0_8px_#22d3ee] animate-scan-beam" />
                   </div>
 
                   {/* Animated Laser Connector (Left to Right beam flow) */}
