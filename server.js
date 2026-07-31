@@ -201,7 +201,10 @@ async function callOpenRouter(base64Data, mimeType, apiKey, prompt) {
   const url = 'https://openrouter.ai/api/v1/responses';
   
   const openRouterModels = [
+    "mistralai/mistral-medium-latest",
+    "mistralai/mistral-medium-3-5",
     "mistralai/mistral-medium-3-5-26-04",
+    "mistralai/mistral-medium-3",
     "openrouter/free",
     "google/gemini-3.5-flash:free",
     "google/gemini-2.5-flash:free",
