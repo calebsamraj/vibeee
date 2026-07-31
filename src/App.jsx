@@ -535,35 +535,38 @@ export default function App() {
               />
 
               {imagePreview ? (
-                <div className="w-full h-full flex flex-col items-center gap-4 animate-slide-in relative group/img">
+                <div className="w-full h-full flex flex-col items-center gap-4 animate-slide-in relative">
                   <div className="relative rounded-xl overflow-hidden border border-white/10 shadow-2xl max-h-[320px] w-full flex items-center justify-center bg-black/40">
                     <img 
                       src={imagePreview} 
                       alt="Uploaded Preview" 
                       className="object-contain max-h-[320px] w-full"
                     />
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-3">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          fileInputRef.current?.click();
-                        }}
-                        className="p-2.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl shadow-lg transition-transform hover:scale-105 cursor-pointer"
-                        title="Replace Image"
-                      >
-                        <RefreshCw className="w-5 h-5" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleClearImage();
-                        }}
-                        className="p-2.5 bg-red-600 hover:bg-red-500 text-white rounded-xl shadow-lg transition-transform hover:scale-105 cursor-pointer"
-                        title="Delete Image"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
-                    </div>
+                  </div>
+                  {/* Persistent Control Buttons */}
+                  <div className="flex items-center gap-3 mt-1">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        fileInputRef.current?.click();
+                      }}
+                      className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-slate-100 border border-slate-850 hover:border-slate-700 rounded-xl text-xs font-semibold transition-all active:scale-95 cursor-pointer"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>Change Image</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleClearImage();
+                      }}
+                      className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-red-950/20 text-slate-400 hover:text-red-450 border border-slate-850 hover:border-red-500/20 rounded-xl text-xs font-semibold transition-all active:scale-95 cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Remove</span>
+                    </button>
                   </div>
                   {imageFile && (
                     <div className="flex justify-between items-center w-full px-2">
@@ -702,27 +705,41 @@ export default function App() {
             )}
 
             {/* Analyze Trigger */}
-            <button
-              onClick={handleAnalyze}
-              disabled={loadingStep !== null || !imageFile}
-              className={`w-full py-3.5 rounded-2xl font-semibold flex items-center justify-center gap-2 cursor-pointer shadow-xl transition-all duration-300 ${
-                imageFile && loadingStep === null
-                  ? 'bg-gradient-to-r from-cyan-600 via-cyan-500 to-teal-500 text-white hover:opacity-95 shadow-cyan-600/25 hover:shadow-cyan-600/35 hover:-translate-y-0.5'
-                  : 'bg-slate-900 border border-slate-800 text-slate-500 cursor-not-allowed'
-              }`}
-            >
-              {loadingStep ? (
-                <>
-                  <RefreshCw className="w-5 h-5 animate-spin" />
-                  <span>Processing...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-5 h-5" />
-                  <span>Analyze Vibe</span>
-                </>
+            <div className="flex gap-3">
+              <button
+                onClick={handleAnalyze}
+                disabled={loadingStep !== null || !imageFile}
+                className={`flex-1 py-3.5 rounded-2xl font-semibold flex items-center justify-center gap-2 cursor-pointer shadow-xl transition-all duration-300 ${
+                  imageFile && loadingStep === null
+                    ? 'bg-gradient-to-r from-cyan-600 via-cyan-500 to-teal-500 text-white hover:opacity-95 shadow-cyan-600/25 hover:shadow-cyan-600/35 hover:-translate-y-0.5'
+                    : 'bg-slate-900 border border-slate-800 text-slate-500 cursor-not-allowed'
+                }`}
+              >
+                {loadingStep ? (
+                  <>
+                    <RefreshCw className="w-5 h-5 animate-spin" />
+                    <span>Processing...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-5 h-5" />
+                    <span>Analyze Vibe</span>
+                  </>
+                )}
+              </button>
+              
+              {results && loadingStep === null && (
+                <button
+                  type="button"
+                  onClick={handleClearImage}
+                  className="px-4 py-3.5 rounded-2xl bg-slate-900 border border-slate-800 hover:border-slate-700 hover:bg-slate-800/40 text-slate-400 hover:text-slate-200 transition-all duration-300 active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
+                  title="Reset Curation"
+                >
+                  <Trash2 className="w-5 h-5" />
+                  <span className="text-sm font-semibold">Reset</span>
+                </button>
               )}
-            </button>
+            </div>
           </div>
         </section>
 
@@ -988,6 +1005,18 @@ export default function App() {
                   </p>
                 </div>
               )}
+
+              {/* Reset CTA */}
+              <div className="flex justify-center mt-2 animate-slide-in">
+                <button
+                  type="button"
+                  onClick={handleClearImage}
+                  className="px-8 py-3.5 rounded-2xl bg-slate-900 border border-slate-800 hover:border-cyan-500/30 hover:bg-slate-800/40 text-slate-300 hover:text-slate-100 font-semibold text-sm transition-all duration-300 active:scale-95 shadow-lg flex items-center gap-2 cursor-pointer"
+                >
+                  <RefreshCw className="w-4 h-4 text-cyan-400 animate-spin-slow" />
+                  <span>Reset & Analyze Another Image</span>
+                </button>
+              </div>
 
             </div>
           )}
