@@ -45,7 +45,8 @@ export default function App() {
     songsTamil: true,
     songsEnglish: true,
     songsHindi: true,
-    songsTamilChristian: true
+    songsTamilChristian: true,
+    songEra: 'latest' // 'latest', '2000s', '90s', '80s'
   });
   
   const [songMetadata, setSongMetadata] = useState({});
@@ -460,9 +461,18 @@ export default function App() {
               {isCurrentPlaying ? "Pause" : "Preview"}
             </button>
           ) : (
-            <span className="h-10 px-3 rounded-xl border border-slate-800/50 bg-slate-950/10 text-slate-500 text-xs flex items-center justify-center font-semibold select-none">
-              No Preview
-            </span>
+            <a 
+              href={`https://www.youtube.com/results?search_query=${encodeURIComponent(song)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => {
+                triggerEmojiBurst(e);
+              }}
+              className="h-10 px-3 md:px-4 rounded-xl border border-slate-850 hover:border-red-500/30 bg-slate-900 text-slate-400 hover:text-red-400 transition-all text-xs font-semibold flex items-center justify-center cursor-pointer"
+              title="Listen on YouTube"
+            >
+              Play on YT
+            </a>
           )}
 
           <a 
@@ -740,6 +750,21 @@ export default function App() {
                       Hindi
                     </label>
                   </div>
+                </div>
+
+                <div>
+                  <span className="text-xs text-slate-400 font-medium block mb-2">Song Era / Generation:</span>
+                  <select
+                    value={options.songEra}
+                    onChange={(e) => setOptions({ ...options, songEra: e.target.value })}
+                    className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-200 text-sm rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all cursor-pointer font-medium"
+                  >
+                    <option value="latest">Latest Hits (New releases & trending)</option>
+                    <option value="2010s">2010s Hits (Throwbacks & pop hits)</option>
+                    <option value="2000s">2000s Hits (Classic 2000s aesthetic)</option>
+                    <option value="90s">90s Hits (Melodious & retro 90s vibes)</option>
+                    <option value="80s">80s Retro (Synthpop, classic rock & vintage)</option>
+                  </select>
                 </div>
               </div>
             )}

@@ -507,12 +507,16 @@ app.post('/api/curate', async (req, res) => {
   if (options.songsHindi) selectedSongLangs.push("Hindi");
   if (options.songsTamilChristian) selectedSongLangs.push("Tamil Christian");
 
+  const songEraLabel = options.songEra ? `${options.songEra} Hits` : "Latest Hits";
+
   const systemPrompt = `You are a social media and music curation expert. Your task is to analyze the provided image and generate:
 1. For each selected language for captions/quotes (${selectedCaptionLangs.join(', ')}):
    Generate 3 highly creative, engaging, and different styles of social media captions or quotes (e.g., one witty, one poetic/quote, one direct/engaging) in that language.
 2. 5-8 relevant, trending hashtags (including standard ones and some specific to the vibe of the image).
 3. For each selected language for songs (${selectedSongLangs.join(', ')}):
-   Generate 2-3 song recommendations (Format: "Song Title - Artist") that specifically match the background vibe, visual atmosphere, setting, and aesthetic tone of the image (for example, if the background has cyberpunk/neon elements, recommend synthwave/electronic music; if it is a cozy indoor cafe setting, recommend lofi/acoustic/jazz; if it is an outdoor nature/sunset setting, recommend ambient/chill/indie music). If "Tamil Christian" is selected, recommend Christian worship/devotional songs in Tamil that match the serene, grateful, peaceful, or spiritual vibe of the setting.
+   Generate 2-3 song recommendations (Format: "Song Title - Artist") that specifically match the background vibe, visual atmosphere, setting, and aesthetic tone of the image. The songs MUST belong to the following era/generation: ${songEraLabel}.
+   Ensure that these song suggestions are extremely popular, mainstream, and well-known songs from the ${songEraLabel} category, so that high-quality audio previews can be successfully fetched from public databases. Do not suggest obscure indie or local songs unless they are verified hits.
+   If "Tamil Christian" is selected, recommend Christian worship/devotional songs in Tamil from the specified era/category (or well-known classics if era-specific worship hits are sparse) that match the serene, grateful, peaceful, or spiritual vibe of the setting.
 4. "captionExplanation": A 1-2 sentence description explaining the mood and tone of the generated captions and why they fit the visual elements of this specific picture.
 5. "songExplanation": A 1-2 sentence explanation detailing why these specific song recommendations and music genres were chosen to complement the visual aesthetics, setting, and mood of the picture.
 6. "lookDescription": If there is a person (or people) in the photo, write a 2-3 sentence engaging description analyzing their appearance, clothing look, style, accessories, colors, expressions, aesthetic vibe, and what details make their look stand out (its "gloss" or highlights). If there is no person in the photo, return an empty string.
