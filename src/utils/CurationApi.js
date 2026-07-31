@@ -459,6 +459,21 @@ async function runClientSideFallback(base64Data, mimeType, options, onStatusChan
 
   const songEraLabel = options.songEra ? `${options.songEra} Hits` : "Latest Hits";
 
+  let tamilEraRangeInstruction = "";
+  if (options.songEra === 'latest') {
+    tamilEraRangeInstruction = "Latest Hits (Release year 2010 to Present Year, trending chartbusters)";
+  } else if (options.songEra === '2010s') {
+    tamilEraRangeInstruction = "Tamil Hits of 2010s (Release year 2010 to Present Year nostalgic throwbacks)";
+  } else if (options.songEra === '2000s') {
+    tamilEraRangeInstruction = "Tamil Hits of 2000s (Release year 2000 to Present Year iconic classics)";
+  } else if (options.songEra === '90s') {
+    tamilEraRangeInstruction = "Tamil Hits of 90s (Release year before 2000, specifically 1990 - 1999)";
+  } else if (options.songEra === '80s') {
+    tamilEraRangeInstruction = "Tamil Retro Hits of 80s (Release year before 1990, specifically 1980 - 1989)";
+  } else {
+    tamilEraRangeInstruction = "Latest Hits (2010 to present)";
+  }
+
   let captionStyleInstruction = "Each caption should be short and creative (1-2 lines).";
   if (options.captionStyle === 'one_line') {
     captionStyleInstruction = "Each generated caption must be exactly 1 line long (a single sentence or short line).";
@@ -468,15 +483,28 @@ async function runClientSideFallback(base64Data, mimeType, options, onStatusChan
     captionStyleInstruction = "Each generated caption must consist of exactly 3 words (e.g., 'Retro cozy vibes').";
   }
 
+  let captionPlatformInstruction = "";
+  if (options.captionPlatform === 'story') {
+    captionPlatformInstruction = "The generated captions are specifically for an Instagram Story. They must be extremely short, aesthetic, punchy, and designed to look good as a text overlay overlaying a story picture.";
+  } else if (options.captionPlatform === 'reel') {
+    captionPlatformInstruction = "The generated captions are specifically for an Instagram Reel. They must contain strong viewer hooks to increase watch retention (e.g. 'Wait for the end...', 'Vibe check...'), a brief description, and a clear call to action (e.g. 'Save this for later', 'Tag a friend').";
+  } else {
+    captionPlatformInstruction = "The generated captions are specifically for an Instagram Post. They should be creative and engaging, with standard readability spacing, followed by standard hashtags.";
+  }
+
   const systemPrompt = `You are a social media and music curation expert. Your task is to analyze the provided image and generate:
 1. For each selected language for captions/quotes (${selectedCaptionLangs.join(', ')}):
    Generate 3 highly creative, engaging, and different styles of social media captions or quotes (e.g., one witty, one poetic/quote, one direct/engaging) in that language.
-   CRITICAL REQUIREMENT: ${captionStyleInstruction}
+   CRITICAL LENGTH REQUIREMENT: ${captionStyleInstruction}
+   CRITICAL PLATFORM STYLE REQUIREMENT: ${captionPlatformInstruction}
 2. 5-8 relevant, trending hashtags (including standard ones and some specific to the vibe of the image).
 3. For each selected language for songs (${selectedSongLangs.join(', ')}):
-   Generate 2-3 song recommendations (Format: "Song Title - Artist") that specifically match the background vibe, visual atmosphere, setting, and aesthetic tone of the image. The songs MUST belong to the following era/generation: ${songEraLabel}.
-   Ensure that these song suggestions are extremely popular, mainstream, and well-known songs from the ${songEraLabel} category, so that high-quality audio previews can be successfully fetched from public databases. Do not suggest obscure indie or local songs unless they are verified hits.
-   If "Tamil Christian" is selected, recommend Christian worship/devotional songs in Tamil from the specified era/category (or well-known classics if era-specific worship hits are sparse) that match the serene, grateful, peaceful, or spiritual vibe of the setting.
+   Generate 2-3 song recommendations (Format: "Song Title - Artist") that specifically match the background vibe, visual atmosphere, setting, and aesthetic tone of the image.
+   
+   CRITICAL SONG ERA/PLATFORM RULES:
+   - For TAMIL songs: The songs MUST belong to the following era/generation: ${tamilEraRangeInstruction}. Ensure that these song suggestions are extremely popular, mainstream, and well-known Tamil songs from that category, so that high-quality audio previews can be successfully fetched from public databases.
+   - For TAMIL CHRISTIAN songs: Recommend Christian worship/devotional songs in Tamil from the specified era/category (or well-known classics if era-specific worship hits are sparse) that match the serene, grateful, peaceful, or spiritual vibe of the setting. Note: Only suggest well-known songs with publicly available preview clips.
+   - For ENGLISH and HINDI songs: Do NOT restrict them by the Selected Era. Instead, recommend top-rated, mainstream hits on Spotify that perfectly suit the image's background setting, genre, and aesthetic tone (e.g., electronic/synthpop for futuristic/neon photos; chill, lofi, or acoustic for cafe/warm photos; ambient or acoustic for sunset/nature photos).
 4. "captionExplanation": A 1-2 sentence description explaining the mood and tone of the generated captions and why they fit the visual elements of this specific picture.
 5. "songExplanation": A 1-2 sentence explanation detailing why these specific song recommendations and music genres were chosen to complement the visual aesthetics, setting, and mood of the picture.
 6. "lookDescription": If there is a person (or people) in the photo, write a 2-3 sentence engaging description analyzing their appearance, clothing look, style, accessories, colors, expressions, aesthetic vibe, and what details make their look stand out (its "gloss" or highlights). If there is no person in the photo, return an empty string.

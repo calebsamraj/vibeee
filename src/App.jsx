@@ -46,8 +46,9 @@ export default function App() {
     songsEnglish: true,
     songsHindi: true,
     songsTamilChristian: true,
-    songEra: 'latest', // 'latest', '2000s', '90s', '80s'
-    captionStyle: 'one_line' // 'one_line', 'two_lines', 'three_words'
+    songEra: 'latest', // 'latest', '2010s', '2000s', '90s', '80s'
+    captionStyle: 'one_line', // 'one_line', 'two_lines', 'three_words'
+    captionPlatform: 'post' // 'post', 'story', 'reel'
   });
   
   const [songMetadata, setSongMetadata] = useState({});
@@ -277,20 +278,38 @@ export default function App() {
     try {
       const curatedData = await queryWithFallback(imageFile, '', options, setLoadingStatus);
       
-      const songsList = [
+      const metadataDict = {};
+      const finalTamilChristian = [];
+
+      // Filter and verify Tamil Christian songs
+      if (curatedData.songsTamilChristian && curatedData.songsTamilChristian.length > 0) {
+        for (let i = 0; i < curatedData.songsTamilChristian.length; i++) {
+          const song = curatedData.songsTamilChristian[i];
+          setLoadingStatus(`Verifying Christian soundtrack preview (${i + 1}/${curatedData.songsTamilChristian.length})...`);
+          const details = await fetchSongDetails(song);
+          if (details && details.previewUrl) {
+            metadataDict[song] = details;
+            finalTamilChristian.push(song);
+          } else {
+            console.log(`Filtering out Tamil Christian song without preview: ${song}`);
+          }
+          await new Promise(resolve => setTimeout(resolve, 50));
+        }
+        curatedData.songsTamilChristian = finalTamilChristian;
+      }
+
+      // Fetch standard playlist songs
+      const standardSongs = [
         ...(curatedData.songsTamil || []),
         ...(curatedData.songsEnglish || []),
-        ...(curatedData.songsHindi || []),
-        ...(curatedData.songsTamilChristian || [])
+        ...(curatedData.songsHindi || [])
       ];
 
-      const metadataDict = {};
-      for (let i = 0; i < songsList.length; i++) {
-        const song = songsList[i];
-        setLoadingStatus(`Fetching audio previews (${i + 1}/${songsList.length})...`);
+      for (let i = 0; i < standardSongs.length; i++) {
+        const song = standardSongs[i];
+        setLoadingStatus(`Fetching audio previews (${i + 1}/${standardSongs.length})...`);
         const details = await fetchSongDetails(song);
         metadataDict[song] = details;
-        // Spaced script injection to avoid concurrent throttling on mobile WebKit (Safari/Chrome on iOS)
         await new Promise(resolve => setTimeout(resolve, 50));
       }
 
@@ -725,6 +744,19 @@ export default function App() {
                 </div>
 
                 <div>
+                  <span className="text-xs text-slate-400 font-medium block mb-2">Target Social Platform:</span>
+                  <select
+                    value={options.captionPlatform}
+                    onChange={(e) => setOptions({ ...options, captionPlatform: e.target.value })}
+                    className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-200 text-sm rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all cursor-pointer font-medium"
+                  >
+                    <option value="post">Instagram Post (Standard, storytelling, rich hashtags)</option>
+                    <option value="story">Instagram Story (Short, punchy aesthetic overlays)</option>
+                    <option value="reel">Instagram Reel (Viewer hook, retention description, CTA)</option>
+                  </select>
+                </div>
+
+                <div>
                   <span className="text-xs text-slate-400 font-medium block mb-2">Song Playlists Language / Category:</span>
                   <div className="flex flex-wrap gap-4">
                     <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
@@ -766,20 +798,26 @@ export default function App() {
                   </div>
                 </div>
 
-                <div>
-                  <span className="text-xs text-slate-400 font-medium block mb-2">Song Era / Generation:</span>
-                  <select
-                    value={options.songEra}
-                    onChange={(e) => setOptions({ ...options, songEra: e.target.value })}
-                    className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-200 text-sm rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all cursor-pointer font-medium"
-                  >
-                    <option value="latest">Latest Hits (New releases & trending)</option>
-                    <option value="2010s">2010s Hits (Throwbacks & pop hits)</option>
-                    <option value="2000s">2000s Hits (Classic 2000s aesthetic)</option>
-                    <option value="90s">90s Hits (Melodious & retro 90s vibes)</option>
-                    <option value="80s">80s Retro (Synthpop, classic rock & vintage)</option>
-                  </select>
-                </div>
+                {options.songsTamil ? (
+                  <div className="animate-slide-in">
+                    <span className="text-xs text-slate-400 font-medium block mb-2">Tamil Song Era / Generation:</span>
+                    <select
+                      value={options.songEra}
+                      onChange={(e) => setOptions({ ...options, songEra: e.target.value })}
+                      className="w-full bg-slate-905 border border-slate-800 hover:border-slate-700 text-slate-200 text-sm rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all cursor-pointer font-medium"
+                    >
+                      <option value="latest">Latest Hits (2010 to Present Year)</option>
+                      <option value="2010s">2010s Hits (2010 to Present Year - Throwbacks)</option>
+                      <option value="2000s">2000s Hits (2000 to Present Year Classics)</option>
+                      <option value="90s">90s Hits (Before 2000, 1990 - 1999)</option>
+                      <option value="80s">80s Retro (Before 1990, 1980 - 1989)</option>
+                    </select>
+                  </div>
+                ) : (
+                  <div className="text-xs text-slate-500 italic bg-slate-950/20 p-3.5 rounded-xl border border-white/5">
+                    Tamil Song Era selection is only active when Tamil soundtrack curations are enabled.
+                  </div>
+                )}
               </div>
             )}
 
@@ -918,8 +956,84 @@ export default function App() {
           {/* Results Render Area */}
           {!loadingStep && results && (
             <div className="grid grid-cols-1 gap-6 animate-slide-in">
+              {/* 3D Music Visualizer & Deck */}
+              <div className="glass-panel p-6 rounded-3xl flex flex-col sm:flex-row items-center gap-6 border-2 border-cyan-500/30 bg-slate-950/70 shadow-[0_20px_50px_rgba(6,182,212,0.15),inset_0_2px_4px_rgba(255,255,255,0.05)] relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none"></div>
+                <div className="absolute bottom-0 left-0 w-64 h-64 bg-pink-500/5 rounded-full blur-3xl pointer-events-none"></div>
+                
+                {/* 3D Spinning Record Player Graphic */}
+                <div className="relative w-36 h-36 shrink-0 flex items-center justify-center rounded-2xl bg-slate-900 border border-slate-800 shadow-[4px_4px_0px_#0891b2] p-2">
+                  <div className="absolute top-2 left-2 text-[9px] font-mono text-cyan-500 font-bold uppercase tracking-wider">A-SIDE</div>
+                  <div className="absolute bottom-2 right-2 text-[9px] font-mono text-pink-500 font-bold uppercase tracking-wider">STEREO</div>
+                  
+                  {/* Vinyl Record */}
+                  <div 
+                    className={`w-28 h-28 rounded-full bg-slate-950 border-4 border-slate-800 flex items-center justify-center relative shadow-[inset_0_0_20px_rgba(0,0,0,0.9),0_10px_20px_rgba(0,0,0,0.5)] ${playingTrackUrl ? 'animate-spin' : 'animate-spin-slow'}`} 
+                    style={{ animationDuration: playingTrackUrl ? '3s' : '15s' }}
+                  >
+                    {/* Vinyl grooves */}
+                    <div className="absolute inset-2 rounded-full border border-slate-900/60"></div>
+                    <div className="absolute inset-4 rounded-full border border-slate-900/60"></div>
+                    <div className="absolute inset-6 rounded-full border border-slate-900/60"></div>
+                    <div className="absolute inset-8 rounded-full border border-slate-900/60"></div>
+                    
+                    {/* Center Label */}
+                    <div className="w-10 h-10 rounded-full bg-cyan-500 flex items-center justify-center border-2 border-slate-950 shadow-inner">
+                      <div className="w-2.5 h-2.5 rounded-full bg-slate-950"></div>
+                    </div>
+                  </div>
+                  
+                  {/* Stylus needle */}
+                  <div 
+                    className={`absolute top-3 right-3 w-1.5 h-12 bg-slate-400 origin-top transform transition-transform duration-500 ${playingTrackUrl ? 'rotate-[25deg]' : 'rotate-0'}`} 
+                    style={{ borderRadius: '4px' }}
+                  >
+                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-slate-300 rounded-sm border border-slate-500"></div>
+                  </div>
+                </div>
+                
+                {/* Deck metadata & visualizer bars */}
+                <div className="flex-1 flex flex-col gap-3.5 w-full">
+                  <div>
+                    <span className="text-[10px] uppercase font-extrabold tracking-wider bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded text-cyan-400">
+                      Vibeee Deck v1.0
+                    </span>
+                    <h3 className="text-xl font-black text-slate-100 mt-2 text-glow-cyan">
+                      {playingTrackUrl ? "NOW PLAYING PREVIEW" : "DECK READY"}
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-0.5 font-medium truncate">
+                      {playingTrackUrl 
+                        ? "Pulsing audio frequencies aligned with your visual aesthetic."
+                        : "Select any song below to load into the synthesizer deck."}
+                    </p>
+                  </div>
+                  
+                  {/* Glowing 3D visualizer bars */}
+                  <div className="h-10 flex items-end gap-1 bg-slate-900/50 p-2 rounded-xl border border-white/5 shadow-inner">
+                    {Array.from({ length: 24 }).map((_, idx) => {
+                      const randomDelays = ["0.1s", "0.3s", "0.5s", "0.2s", "0.4s", "0.6s"];
+                      const delay = randomDelays[idx % randomDelays.length];
+                      return (
+                        <div 
+                          key={idx} 
+                          className={`flex-1 rounded-t-sm transition-all duration-300 ${
+                            playingTrackUrl 
+                              ? 'bg-gradient-to-t from-cyan-500 to-pink-500 animate-visualizer-bar' 
+                              : 'bg-slate-800 h-1.5'
+                          }`}
+                          style={{ 
+                            animationDelay: delay,
+                            height: playingTrackUrl ? undefined : '6px'
+                          }}
+                        ></div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
               {results._modelUsed && (
-                <div className="glass-panel p-4 rounded-2xl flex items-center justify-between border border-cyan-500/20 bg-cyan-950/10">
+                <div className="glass-panel p-4 rounded-2xl flex items-center justify-between border border-cyan-500/20 bg-cyan-950/10 shadow-[2px_2px_0px_#06b6d4]">
                   <div className="flex items-center gap-2">
                     <Sparkles className="w-4 h-4 text-cyan-400 animate-pulse" />
                     <span className="text-xs text-slate-300 font-medium">Curated by AI Engine:</span>
@@ -931,8 +1045,8 @@ export default function App() {
               )}
 
               {results.lookDescription && (
-                <div className="glass-panel p-6 rounded-3xl flex flex-col gap-3 border border-pink-500/20 bg-pink-950/10">
-                  <h3 className="text-base font-bold text-slate-200 flex items-center gap-2">
+                <div className="glass-panel p-6 rounded-3xl flex flex-col gap-3 border-2 border-pink-500/40 bg-slate-950/70 shadow-[6px_6px_0px_rgba(236,72,153,0.3)]">
+                  <h3 className="text-base font-black text-slate-100 flex items-center gap-2">
                     <Sparkles className="w-5 h-5 text-pink-400" />
                     Subject's Style & Look ("Gloss")
                   </h3>
@@ -943,7 +1057,7 @@ export default function App() {
               )}
               
               {/* Captions Block */}
-              <div className="glass-panel p-6 rounded-3xl flex flex-col gap-4">
+              <div className="glass-panel p-6 rounded-3xl flex flex-col gap-4 border-2 border-cyan-500/30 bg-slate-950/70 shadow-[6px_6px_0px_rgba(6,182,212,0.3)]">
                 <h3 className="text-base font-bold text-slate-200 flex items-center gap-2">
                   <Sparkles className="w-5 h-5 text-cyan-400" />
                   Social Media Captions & Quotes
@@ -1026,9 +1140,9 @@ export default function App() {
               </div>
 
               {/* Hashtags Block */}
-              <div className="glass-panel p-6 rounded-3xl flex flex-col gap-4">
+              <div className="glass-panel p-6 rounded-3xl flex flex-col gap-4 border-2 border-slate-800 bg-slate-950/70 shadow-[6px_6px_0px_rgba(59,130,246,0.3)]">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-base font-bold text-slate-200 flex items-center gap-2">
+                  <h3 className="text-base font-black text-slate-100 flex items-center gap-2">
                     <span className="text-cyan-400 font-mono">#</span>
                     Trending Hashtags
                   </h3>
@@ -1067,8 +1181,8 @@ export default function App() {
                 
                 {/* Tamil Songs Playlist */}
                 {options.songsTamil && results.songsTamil && results.songsTamil.length > 0 && (
-                  <div className="glass-panel p-6 rounded-3xl flex flex-col gap-4 border-l-2 border-l-cyan-500/40">
-                    <h3 className="text-base font-bold text-slate-200 flex items-center justify-between">
+                  <div className="glass-panel p-6 rounded-3xl flex flex-col gap-4 border-2 border-cyan-500/30 bg-slate-950/70 shadow-[6px_6px_0px_rgba(6,182,212,0.3)]">
+                    <h3 className="text-base font-black text-slate-100 flex items-center justify-between">
                       <span className="flex items-center gap-2">
                         <Music className="w-5 h-5 text-cyan-400" />
                         Tamil Curations
@@ -1086,8 +1200,8 @@ export default function App() {
 
                 {/* Tamil Christian Songs Playlist */}
                 {options.songsTamilChristian && results.songsTamilChristian && results.songsTamilChristian.length > 0 && (
-                  <div className="glass-panel p-6 rounded-3xl flex flex-col gap-4 border-l-2 border-l-emerald-500/40">
-                    <h3 className="text-base font-bold text-slate-200 flex items-center justify-between">
+                  <div className="glass-panel p-6 rounded-3xl flex flex-col gap-4 border-2 border-emerald-500/30 bg-slate-950/70 shadow-[6px_6px_0px_rgba(16,185,129,0.3)]">
+                    <h3 className="text-base font-black text-slate-100 flex items-center justify-between">
                       <span className="flex items-center gap-2">
                         <Music className="w-5 h-5 text-emerald-400" />
                         Tamil Christian Curations
@@ -1105,8 +1219,8 @@ export default function App() {
 
                 {/* English Songs Playlist */}
                 {options.songsEnglish && results.songsEnglish && results.songsEnglish.length > 0 && (
-                  <div className="glass-panel p-6 rounded-3xl flex flex-col gap-4 border-l-2 border-l-blue-500/40">
-                    <h3 className="text-base font-bold text-slate-200 flex items-center justify-between">
+                  <div className="glass-panel p-6 rounded-3xl flex flex-col gap-4 border-2 border-blue-500/30 bg-slate-950/70 shadow-[6px_6px_0px_rgba(59,130,246,0.3)]">
+                    <h3 className="text-base font-black text-slate-100 flex items-center justify-between">
                       <span className="flex items-center gap-2">
                         <Music className="w-5 h-5 text-blue-400" />
                         English Curations
@@ -1124,8 +1238,8 @@ export default function App() {
 
                 {/* Hindi Songs Playlist */}
                 {options.songsHindi && results.songsHindi && results.songsHindi.length > 0 && (
-                  <div className="glass-panel p-6 rounded-3xl flex flex-col gap-4 border-l-2 border-l-teal-500/40">
-                    <h3 className="text-base font-bold text-slate-200 flex items-center justify-between">
+                  <div className="glass-panel p-6 rounded-3xl flex flex-col gap-4 border-2 border-teal-500/30 bg-slate-950/70 shadow-[6px_6px_0px_rgba(20,184,166,0.3)]">
+                    <h3 className="text-base font-black text-slate-100 flex items-center justify-between">
                       <span className="flex items-center gap-2">
                         <Music className="w-5 h-5 text-teal-400" />
                         Hindi Curations
