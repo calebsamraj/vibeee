@@ -457,21 +457,31 @@ async function runClientSideFallback(base64Data, mimeType, options, onStatusChan
   if (options.songsHindi) selectedSongLangs.push("Hindi");
   if (options.songsTamilChristian) selectedSongLangs.push("Tamil Christian");
 
+  // Era ranges must be computed dynamically -- never hardcoded -- so "Latest"
+  // always means the real current calendar year, whatever year the app runs in.
+  const currentYear = new Date().getFullYear();
   const songEraLabel = options.songEra ? `${options.songEra} Hits` : "Latest Hits";
 
   let tamilEraRangeInstruction = "";
+  let tamilEraStrictRule = "";
   if (options.songEra === 'latest') {
-    tamilEraRangeInstruction = "Latest Hits (Release year 2010 to Present Year, trending chartbusters)";
+    tamilEraRangeInstruction = `Latest Hits (ONLY songs officially released in ${currentYear}, the current calendar year)`;
+    tamilEraStrictRule = `ONLY recommend songs officially released in ${currentYear}. Do not recommend songs from previous years (2025, 2024, 2023, or earlier) merely because they are currently popular or trending -- they must be genuinely new releases from ${currentYear} itself.`;
   } else if (options.songEra === '2010s') {
-    tamilEraRangeInstruction = "Tamil Hits of 2010s (Release year 2010 to Present Year nostalgic throwbacks)";
+    tamilEraRangeInstruction = "2010s Hits (ONLY songs originally released between 2010 and 2019)";
+    tamilEraStrictRule = "ONLY recommend songs originally released between 2010 and 2019.";
   } else if (options.songEra === '2000s') {
-    tamilEraRangeInstruction = "Tamil Hits of 2000s (Release year 2000 to Present Year iconic classics)";
+    tamilEraRangeInstruction = "2000s Hits (ONLY songs originally released between 2000 and 2009)";
+    tamilEraStrictRule = "ONLY recommend songs originally released between 2000 and 2009.";
   } else if (options.songEra === '90s') {
-    tamilEraRangeInstruction = "Tamil Hits of 90s (Release year before 2000, specifically 1990 - 1999)";
+    tamilEraRangeInstruction = "90s Hits (ONLY songs originally released between 1990 and 1999)";
+    tamilEraStrictRule = "ONLY recommend songs originally released between 1990 and 1999.";
   } else if (options.songEra === '80s') {
-    tamilEraRangeInstruction = "Tamil Retro Hits of 80s (Release year before 1990, specifically 1980 - 1989)";
+    tamilEraRangeInstruction = "80s Retro Hits (ONLY songs originally released between 1980 and 1989)";
+    tamilEraStrictRule = "ONLY recommend songs originally released between 1980 and 1989.";
   } else {
-    tamilEraRangeInstruction = "Latest Hits (2010 to present)";
+    tamilEraRangeInstruction = `Latest Hits (ONLY songs officially released in ${currentYear})`;
+    tamilEraStrictRule = `ONLY recommend songs officially released in ${currentYear}. Do not recommend songs from previous years.`;
   }
 
   let captionStyleInstruction = "Each caption should be short and creative (1-2 lines).";
@@ -502,7 +512,7 @@ async function runClientSideFallback(base64Data, mimeType, options, onStatusChan
    Generate 2-3 song recommendations (Format: "Song Title - Artist") that specifically match the background vibe, visual atmosphere, setting, and aesthetic tone of the image.
    
    CRITICAL SONG ERA/PLATFORM RULES:
-   - For TAMIL songs: The songs MUST belong to the following era/generation: ${tamilEraRangeInstruction}. Ensure that these song suggestions are extremely popular, mainstream, and well-known Tamil songs from that category, so that high-quality audio previews can be successfully fetched from public databases.
+   - For TAMIL songs: The songs MUST belong to the following era/generation: ${tamilEraRangeInstruction}. ${tamilEraStrictRule} Ensure that these song suggestions are extremely popular, mainstream, and well-known Tamil songs from that category, so that high-quality audio previews can be successfully fetched from public databases. Do not default to recommending the same well-known artist's older catalogue songs just because they are safe/popular -- the release year rule above takes priority over general popularity.
    - For TAMIL CHRISTIAN songs: Recommend Christian worship/devotional songs in Tamil from the specified era/category (or well-known classics if era-specific worship hits are sparse) that match the serene, grateful, peaceful, or spiritual vibe of the setting. Note: Only suggest well-known songs with publicly available preview clips.
    - For ENGLISH and HINDI songs: Do NOT restrict them by the Selected Era. Instead, recommend top-rated, mainstream hits on Spotify that perfectly suit the image's background setting, genre, and aesthetic tone (e.g., electronic/synthpop for futuristic/neon photos; chill, lofi, or acoustic for cafe/warm photos; ambient or acoustic for sunset/nature photos).
 4. "captionExplanation": A 1-2 sentence description explaining the mood and tone of the generated captions and why they fit the visual elements of this specific picture.

@@ -5,7 +5,7 @@ import {
   Trash2, Play, Disc
 } from 'lucide-react';
 import { queryWithFallback } from './utils/CurationApi';
-import { fetchSongDetails } from './utils/MusicApi';
+import { fetchSongDetails, searchCategoryTracks, getCurrentYear } from './utils/MusicApi';
 import ThreeBackground from './components/ThreeBackground';
 import Toast from './components/Toast';
 
@@ -51,6 +51,7 @@ export default function App() {
     captionPlatform: 'post' // 'post', 'story', 'reel'
   });
   
+  const currentYear = getCurrentYear();
   const [activeStep, setActiveStep] = useState(1);
   const [songMetadata, setSongMetadata] = useState({});
   const [playingTrackUrl, setPlayingTrackUrl] = useState(null);
@@ -260,7 +261,7 @@ export default function App() {
       showToast('Please select at least one language for captions.', 'error');
       return;
     }
-    if (!options.songsTamil && !options.songsEnglish && !options.songsHindi) {
+    if (!options.songsTamil && !options.songsEnglish && !options.songsHindi && !options.songsTamilChristian) {
       showToast('Please select at least one language for song recommendations.', 'error');
       return;
     }
@@ -280,39 +281,120 @@ export default function App() {
       const curatedData = await queryWithFallback(imageFile, '', options, setLoadingStatus);
       
       const metadataDict = {};
-      const finalTamilChristian = [];
+      const TARGET_COUNT = 3; // aim for 2-3 playable tracks per selected category
 
-      // Filter and verify Tamil Christian songs
-      if (curatedData.songsTamilChristian && curatedData.songsTamilChristian.length > 0) {
-        for (let i = 0; i < curatedData.songsTamilChristian.length; i++) {
-          const song = curatedData.songsTamilChristian[i];
-          setLoadingStatus(`Verifying Christian soundtrack preview (${i + 1}/${curatedData.songsTamilChristian.length})...`);
-          const details = await fetchSongDetails(song);
-          if (details && details.previewUrl) {
-            metadataDict[song] = details;
-            finalTamilChristian.push(song);
-          } else {
-            console.log(`Filtering out Tamil Christian song without preview: ${song}`);
+      // Category-level fallback search terms. Used only when the AI's own
+      // suggestions don't yield enough *verified, playable* songs. Real
+      // provider searches only -- never fake/generic MP3 files.
+      const getFallbackTerms = (language, era) => {
+        if (language === 'tamil') {
+          switch (era) {
+            case 'latest':
+              return [
+                `Tamil ${currentYear}`,
+                `Tamil songs ${currentYear}`,
+                `Tamil soundtrack ${currentYear}`,
+                `Tamil movie songs ${currentYear}`
+              ];
+            case '2010s':
+              return ['Tamil movie songs 2015', 'Tamil hits 2012', 'Tamil soundtrack 2018', 'Tamil songs 2010s'];
+            case '2000s':
+              return ['Tamil movie songs 2005', 'Tamil hits 2003', 'Tamil soundtrack 2008', 'Tamil songs 2000s'];
+            case '90s':
+              return ['Tamil movie songs 1995', 'Tamil hits 1993', 'Tamil soundtrack 1998', 'Tamil songs 90s'];
+            case '80s':
+              return ['Tamil movie songs 1985', 'Tamil hits 1983', 'Tamil soundtrack 1988', 'Tamil songs 80s'];
+            default:
+              return [`Tamil ${currentYear}`, 'Tamil songs', 'Tamil movie songs'];
           }
-          await new Promise(resolve => setTimeout(resolve, 50));
         }
-        curatedData.songsTamilChristian = finalTamilChristian;
+        if (language === 'tamil_christian') {
+          return ['Tamil Christian songs', 'Tamil worship songs', 'Tamil devotional songs', 'Tamil gospel songs'];
+        }
+        if (language === 'hindi') {
+          return ['Bollywood hits', 'Hindi movie songs', 'Hindi top hits', 'Hindi songs'];
+        }
+        // english
+        return ['Billboard hot hits', 'English pop hits', 'Top 40 songs', 'English chart hits'];
+      };
+
+      // Verifies AI-suggested songs against real providers (iTunes -> Deezer),
+      // then tops up the category with real, era-correct, verified tracks
+      // whenever fewer than TARGET_COUNT songs survive verification.
+      const verifyAndFillPlaylist = async (suggestedSongs, categoryLabel, language, era) => {
+        const verified = [];
+        const usedPreviewUrls = new Set();
+
+        if (suggestedSongs && suggestedSongs.length > 0) {
+          for (let i = 0; i < suggestedSongs.length; i++) {
+            const song = suggestedSongs[i];
+            setLoadingStatus(`Verifying ${categoryLabel} MP3 previews (${i + 1}/${suggestedSongs.length})...`);
+            const details = await fetchSongDetails(song, { language, era, currentYear });
+            if (details && details.previewUrl && !usedPreviewUrls.has(details.previewUrl)) {
+              metadataDict[song] = details;
+              usedPreviewUrls.add(details.previewUrl);
+              verified.push(song);
+            } else {
+              console.log(`Filtered out ${categoryLabel} song without a verified preview: ${song}`);
+            }
+            await new Promise(resolve => setTimeout(resolve, 50));
+          }
+        }
+
+        // Top up with real, verified, era-matching tracks if we're short.
+        if (verified.length < TARGET_COUNT) {
+          setLoadingStatus(
+            language === 'tamil' && era === 'latest'
+              ? `Finding current-year Tamil releases...`
+              : `Finding replacement ${categoryLabel} songs...`
+          );
+          const needed = TARGET_COUNT - verified.length;
+          const fallbackTracks = await searchCategoryTracks(
+            getFallbackTerms(language, era),
+            { era, currentYear },
+            needed,
+            usedPreviewUrls
+          );
+          for (const { songKey, details } of fallbackTracks) {
+            if (usedPreviewUrls.has(details.previewUrl)) continue;
+            metadataDict[songKey] = details;
+            usedPreviewUrls.add(details.previewUrl);
+            verified.push(songKey);
+          }
+        }
+
+        return verified;
+      };
+
+      if (options.songsTamil) {
+        curatedData.songsTamil = await verifyAndFillPlaylist(curatedData.songsTamil, "Tamil", "tamil", options.songEra);
+      } else {
+        curatedData.songsTamil = [];
+      }
+      if (options.songsEnglish) {
+        curatedData.songsEnglish = await verifyAndFillPlaylist(curatedData.songsEnglish, "English", "english", null);
+      } else {
+        curatedData.songsEnglish = [];
+      }
+      if (options.songsHindi) {
+        curatedData.songsHindi = await verifyAndFillPlaylist(curatedData.songsHindi, "Hindi", "hindi", null);
+      } else {
+        curatedData.songsHindi = [];
+      }
+      if (options.songsTamilChristian) {
+        setLoadingStatus('Finding Tamil Christian songs...');
+        curatedData.songsTamilChristian = await verifyAndFillPlaylist(curatedData.songsTamilChristian, "Tamil Christian", "tamil_christian", null);
+      } else {
+        curatedData.songsTamilChristian = [];
       }
 
-      // Fetch standard playlist songs
-      const standardSongs = [
-        ...(curatedData.songsTamil || []),
-        ...(curatedData.songsEnglish || []),
-        ...(curatedData.songsHindi || [])
-      ];
-
-      for (let i = 0; i < standardSongs.length; i++) {
-        const song = standardSongs[i];
-        setLoadingStatus(`Fetching audio previews (${i + 1}/${standardSongs.length})...`);
-        const details = await fetchSongDetails(song);
-        metadataDict[song] = details;
-        await new Promise(resolve => setTimeout(resolve, 50));
-      }
+      // Final playable-song guarantee: never render a card without a
+      // verified previewUrl, no matter what happened above.
+      setLoadingStatus('Preparing playable soundtrack...');
+      curatedData.songsTamil = (curatedData.songsTamil || []).filter(s => metadataDict[s]?.previewUrl);
+      curatedData.songsEnglish = (curatedData.songsEnglish || []).filter(s => metadataDict[s]?.previewUrl);
+      curatedData.songsHindi = (curatedData.songsHindi || []).filter(s => metadataDict[s]?.previewUrl);
+      curatedData.songsTamilChristian = (curatedData.songsTamilChristian || []).filter(s => metadataDict[s]?.previewUrl);
 
       setSongMetadata(metadataDict);
       setResults(curatedData);
@@ -524,6 +606,11 @@ export default function App() {
         preload="auto" 
         playsInline 
         onEnded={() => setPlayingTrackUrl(null)} 
+        onError={() => {
+          console.warn('Preview playback failed for the current track.');
+          setPlayingTrackUrl(null);
+          showToast('That preview failed to play. Try another track.', 'warning');
+        }}
       />
       <audio 
         ref={bgAudioRef} 
@@ -964,11 +1051,11 @@ export default function App() {
                             onChange={(e) => setOptions({ ...options, songEra: e.target.value })}
                             className="w-full bg-slate-905 border border-slate-800 hover:border-slate-700 text-slate-205 text-sm rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all cursor-pointer font-medium"
                           >
-                            <option value="latest">Latest Hits (2010 to Present Year)</option>
-                            <option value="2010s">2010s Hits (2010 to Present Year - Throwbacks)</option>
-                            <option value="2000s">2000s Hits (2000 to Present Year Classics)</option>
-                            <option value="90s">90s Hits (Before 2000, 1990 - 1999)</option>
-                            <option value="80s">80s Retro (Before 1990, 1980 - 1989)</option>
+                            <option value="latest">Latest Hits ({currentYear} releases only)</option>
+                            <option value="2010s">2010s Hits (2010 - 2019 Throwbacks)</option>
+                            <option value="2000s">2000s Hits (2000 - 2009 Classics)</option>
+                            <option value="90s">90s Hits (1990 - 1999)</option>
+                            <option value="80s">80s Retro (1980 - 1989)</option>
                           </select>
                         </div>
                       ) : (
