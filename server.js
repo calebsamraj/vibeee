@@ -16,6 +16,27 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '12mb' }));
 
+// CORS Image Proxy for sample images
+app.get('/api/proxy-image', async (req, res) => {
+  const imageUrl = req.query.url;
+  if (!imageUrl) {
+    return res.status(400).send('Missing url parameter');
+  }
+  try {
+    const response = await fetch(imageUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch image: ${response.statusText}`);
+    }
+    const arrayBuffer = await response.arrayBuffer();
+    const contentType = response.headers.get('content-type') || 'image/jpeg';
+    res.setHeader('Content-Type', contentType);
+    res.send(Buffer.from(arrayBuffer));
+  } catch (error) {
+    console.error('Image proxy error:', error);
+    res.status(500).send('Error proxying image');
+  }
+});
+
 // Helper to clean markdown block wrappers and parse JSON
 function cleanAndParseJson(text) {
   let cleaned = text.trim();

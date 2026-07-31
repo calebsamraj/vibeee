@@ -165,7 +165,18 @@ export default function App() {
   const handleSelectSample = async (sample) => {
     setLoadingSample(sample.id);
     try {
-      const response = await fetch(sample.url);
+      // Try to fetch via local Express proxy first to bypass CORS. Fall back to direct fetch if proxy fails.
+      let response;
+      try {
+        response = await fetch(`/api/proxy-image?url=${encodeURIComponent(sample.url)}`);
+        if (!response.ok) {
+          throw new Error('Proxy returned non-OK status');
+        }
+      } catch (proxyError) {
+        console.warn('Image proxy failed, falling back to direct fetch:', proxyError);
+        response = await fetch(sample.url);
+      }
+      
       const blob = await response.blob();
       const file = new File([blob], `${sample.id}.jpg`, { type: 'image/jpeg' });
       
