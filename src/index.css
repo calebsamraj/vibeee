@@ -2,7 +2,9 @@
 
 @layer base {
   body {
-    background-color: #050811;
+    background: radial-gradient(circle at 15% 15%, rgba(6, 182, 212, 0.08) 0%, transparent 45%),
+                radial-gradient(circle at 85% 85%, rgba(59, 130, 246, 0.08) 0%, transparent 45%),
+                #030712;
     color: #f1f5f9;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     min-height: 100vh;

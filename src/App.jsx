@@ -51,6 +51,7 @@ export default function App() {
     captionPlatform: 'post' // 'post', 'story', 'reel'
   });
   
+  const [activeStep, setActiveStep] = useState(1);
   const [songMetadata, setSongMetadata] = useState({});
   const [playingTrackUrl, setPlayingTrackUrl] = useState(null);
   const [bgMusicPlaying, setBgMusicPlaying] = useState(false);
@@ -577,286 +578,441 @@ export default function App() {
       <main className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8 z-10 flex-1">
         {/* Left Side: Upload & Control Panel */}
         <section className="lg:col-span-5 flex flex-col gap-6">
-          <div className="glass-panel p-6 rounded-3xl flex flex-col gap-6">
-            <h2 className="text-lg font-semibold text-slate-100 flex items-center gap-2">
+          <div className="glass-panel p-6 rounded-3xl flex flex-col gap-6 border-2 border-cyan-500/20 bg-slate-950/70 shadow-[6px_6px_0px_rgba(6,182,212,0.15)]">
+            <h2 className="text-lg font-black text-slate-100 flex items-center gap-2">
               <ImageIcon className="w-5 h-5 text-cyan-400" />
-              Upload Image
+              Curation Station
             </h2>
 
-            {/* Drag and Drop Zone */}
-            <div
-              ref={dragRef}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              onClick={() => !imagePreview && fileInputRef.current?.click()}
-              className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-300 min-h-[300px] relative overflow-hidden group ${
-                imagePreview 
-                  ? 'border-cyan-500/20 bg-slate-950/20' 
-                  : 'border-slate-800 hover:border-cyan-500/50 bg-slate-900/10 hover:bg-cyan-950/5'
-              }`}
-            >
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={(e) => e.target.files?.[0] && handleFileChange(e.target.files[0])}
-                className="hidden"
-              />
+            {results ? (
+              <div className="flex flex-col gap-5 animate-slide-in">
+                {/* Uploaded Preview Image */}
+                <div className="relative rounded-2xl overflow-hidden border-2 border-cyan-500/20 shadow-2xl max-h-[300px] w-full flex items-center justify-center bg-black/40">
+                  <img 
+                    src={imagePreview} 
+                    alt="Curated Preview" 
+                    className="object-contain max-h-[300px] w-full"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent"></div>
+                  <div className="absolute bottom-3 left-3 flex flex-wrap gap-1.5 z-10">
+                    <span className="text-[10px] font-black uppercase bg-cyan-500 text-slate-950 px-2 py-0.5 rounded shadow">
+                      Curation Active
+                    </span>
+                    <span className="text-[10px] font-black uppercase bg-slate-900 border border-slate-700 text-slate-300 px-2 py-0.5 rounded">
+                      {options.captionPlatform}
+                    </span>
+                    <span className="text-[10px] font-black uppercase bg-slate-900 border border-slate-700 text-slate-300 px-2 py-0.5 rounded">
+                      {options.captionStyle.replace('_', ' ')}
+                    </span>
+                  </div>
+                </div>
 
-              {imagePreview ? (
-                <div className="w-full h-full flex flex-col items-center gap-4 animate-slide-in relative">
-                  <div className="relative rounded-xl overflow-hidden border border-white/10 shadow-2xl max-h-[320px] w-full flex items-center justify-center bg-black/40">
-                    <img 
-                      src={imagePreview} 
-                      alt="Uploaded Preview" 
-                      className="object-contain max-h-[320px] w-full"
-                    />
-                  </div>
-                  {/* Persistent Control Buttons */}
-                  <div className="flex items-center gap-3 mt-1">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        fileInputRef.current?.click();
-                      }}
-                      className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-slate-100 border border-slate-850 hover:border-slate-700 rounded-xl text-xs font-semibold transition-all active:scale-95 cursor-pointer"
-                    >
-                      <RefreshCw className="w-3.5 h-3.5 text-cyan-400" />
-                      <span>Change Image</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleClearImage();
-                      }}
-                      className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-red-950/20 text-slate-400 hover:text-red-450 border border-slate-850 hover:border-red-500/20 rounded-xl text-xs font-semibold transition-all active:scale-95 cursor-pointer"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      <span>Remove</span>
-                    </button>
-                  </div>
-                  {imageFile && (
-                    <div className="flex justify-between items-center w-full px-2">
-                      <span className="text-xs text-slate-400 truncate max-w-[200px]">{imageFile.name}</span>
-                      <span className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full font-mono">
-                        {(imageFile.size / (1024 * 1024)).toFixed(2)} MB
+                <div className="flex flex-col gap-3 p-4 bg-slate-900/40 rounded-2xl border border-white/5">
+                  <h3 className="text-xs font-black text-cyan-400 uppercase tracking-widest">Active Preferences</h3>
+                  <div className="flex flex-col gap-2">
+                    <div className="flex justify-between text-xs font-semibold">
+                      <span className="text-slate-500">Caption Languages:</span>
+                      <span className="text-slate-300">
+                        {[options.captionsEnglish && "English", options.captionsTamil && "Tamil"].filter(Boolean).join(', ')}
                       </span>
                     </div>
-                  )}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center gap-3">
-                  <div className="p-4 rounded-full bg-cyan-950/20 border border-cyan-500/10 text-cyan-400 group-hover:scale-110 transition-transform duration-300 shadow-inner">
-                    <Upload className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-slate-200">Drag & drop your image here</p>
-                    <p className="text-xs text-slate-500 mt-1">Supports JPG, PNG, WebP</p>
-                  </div>
-                  <button
-                    type="button"
-                    className="mt-3 text-xs font-semibold px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-slate-100 transition-colors"
-                  >
-                    Select File
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Sample Image Section */}
-            {!imagePreview && (
-              <div className="animate-slide-in">
-                <span className="text-xs font-semibold text-slate-400 block mb-3">Or choose a sample image:</span>
-                <div className="grid grid-cols-3 gap-3">
-                  {SAMPLE_IMAGES.map((sample) => (
-                    <button
-                      key={sample.id}
-                      onClick={() => handleSelectSample(sample)}
-                      disabled={loadingSample !== null}
-                      className="group/btn relative rounded-xl overflow-hidden border border-slate-800 hover:border-cyan-500/40 aspect-square flex flex-col justify-end p-2 transition-all duration-300 focus:outline-none hover:shadow-lg hover:shadow-cyan-900/10 cursor-pointer"
-                    >
-                      <img 
-                        src={sample.url} 
-                        alt={sample.name} 
-                        className="absolute inset-0 object-cover w-full h-full brightness-50 group-hover/btn:scale-110 transition-transform duration-500"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-transparent"></div>
-                      {loadingSample === sample.id ? (
-                        <div className="absolute inset-0 flex items-center justify-center bg-slate-950/60 z-10">
-                          <RefreshCw className="w-5 h-5 text-cyan-400 animate-spin" />
-                        </div>
-                      ) : null}
-                      <span className="relative z-10 text-[10px] font-bold text-slate-200 group-hover/btn:text-cyan-300 transition-colors truncate w-full text-left">
-                        {sample.name}
+                    <div className="flex justify-between text-xs font-semibold">
+                      <span className="text-slate-500">Song Categories:</span>
+                      <span className="text-slate-300">
+                        {[
+                          options.songsTamil && "Tamil", 
+                          options.songsTamilChristian && "Tamil Christian",
+                          options.songsEnglish && "English",
+                          options.songsHindi && "Hindi"
+                        ].filter(Boolean).join(', ')}
                       </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Curation Options */}
-            {imagePreview && (
-              <div className="glass-panel p-5 rounded-2xl border border-white/5 flex flex-col gap-4 animate-slide-in">
-                <h3 className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-cyan-400" />
-                  Curation Preferences
-                </h3>
-                
-                <div>
-                  <span className="text-xs text-slate-400 font-medium block mb-2">Captions & Quotes Language:</span>
-                  <div className="flex gap-4">
-                    <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={options.captionsEnglish}
-                        onChange={(e) => setOptions({ ...options, captionsEnglish: e.target.checked })}
-                        className="rounded border-slate-700 text-cyan-500 focus:ring-cyan-500/20 bg-slate-900 w-4 h-4 cursor-pointer"
-                      />
-                      English
-                    </label>
-                    <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={options.captionsTamil}
-                        onChange={(e) => setOptions({ ...options, captionsTamil: e.target.checked })}
-                        className="rounded border-slate-700 text-cyan-500 focus:ring-cyan-500/20 bg-slate-900 w-4 h-4 cursor-pointer"
-                      />
-                      Tamil
-                    </label>
+                    </div>
+                    {options.songsTamil && (
+                      <div className="flex justify-between text-xs font-semibold">
+                        <span className="text-slate-500">Tamil Song Era:</span>
+                        <span className="text-slate-300 bg-cyan-950/40 border border-cyan-500/20 px-2 rounded-md capitalize">
+                          {options.songEra}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                <div>
-                  <span className="text-xs text-slate-400 font-medium block mb-2">Caption Length / Format:</span>
-                  <select
-                    value={options.captionStyle}
-                    onChange={(e) => setOptions({ ...options, captionStyle: e.target.value })}
-                    className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-200 text-sm rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all cursor-pointer font-medium"
-                  >
-                    <option value="one_line">1 Line Caption (Clean & descriptive)</option>
-                    <option value="two_lines">2 Lines Caption (Engaging & detailed)</option>
-                    <option value="three_words">3 Words Caption (Minimalist & aesthetic)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <span className="text-xs text-slate-400 font-medium block mb-2">Target Social Platform:</span>
-                  <select
-                    value={options.captionPlatform}
-                    onChange={(e) => setOptions({ ...options, captionPlatform: e.target.value })}
-                    className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-200 text-sm rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all cursor-pointer font-medium"
-                  >
-                    <option value="post">Instagram Post (Standard, storytelling, rich hashtags)</option>
-                    <option value="story">Instagram Story (Short, punchy aesthetic overlays)</option>
-                    <option value="reel">Instagram Reel (Viewer hook, retention description, CTA)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <span className="text-xs text-slate-400 font-medium block mb-2">Song Playlists Language / Category:</span>
-                  <div className="flex flex-wrap gap-4">
-                    <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={options.songsTamil}
-                        onChange={(e) => setOptions({ ...options, songsTamil: e.target.checked })}
-                        className="rounded border-slate-700 text-cyan-500 focus:ring-cyan-500/20 bg-slate-900 w-4 h-4 cursor-pointer"
-                      />
-                      Tamil
-                    </label>
-                    <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={options.songsTamilChristian}
-                        onChange={(e) => setOptions({ ...options, songsTamilChristian: e.target.checked })}
-                        className="rounded border-slate-700 text-cyan-500 focus:ring-cyan-500/20 bg-slate-900 w-4 h-4 cursor-pointer"
-                      />
-                      Tamil Christian
-                    </label>
-                    <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={options.songsEnglish}
-                        onChange={(e) => setOptions({ ...options, songsEnglish: e.target.checked })}
-                        className="rounded border-slate-700 text-cyan-500 focus:ring-cyan-500/20 bg-slate-900 w-4 h-4 cursor-pointer"
-                      />
-                      English
-                    </label>
-                    <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={options.songsHindi}
-                        onChange={(e) => setOptions({ ...options, songsHindi: e.target.checked })}
-                        className="rounded border-slate-700 text-cyan-500 focus:ring-cyan-500/20 bg-slate-900 w-4 h-4 cursor-pointer"
-                      />
-                      Hindi
-                    </label>
-                  </div>
-                </div>
-
-                {options.songsTamil ? (
-                  <div className="animate-slide-in">
-                    <span className="text-xs text-slate-400 font-medium block mb-2">Tamil Song Era / Generation:</span>
-                    <select
-                      value={options.songEra}
-                      onChange={(e) => setOptions({ ...options, songEra: e.target.value })}
-                      className="w-full bg-slate-905 border border-slate-800 hover:border-slate-700 text-slate-200 text-sm rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all cursor-pointer font-medium"
-                    >
-                      <option value="latest">Latest Hits (2010 to Present Year)</option>
-                      <option value="2010s">2010s Hits (2010 to Present Year - Throwbacks)</option>
-                      <option value="2000s">2000s Hits (2000 to Present Year Classics)</option>
-                      <option value="90s">90s Hits (Before 2000, 1990 - 1999)</option>
-                      <option value="80s">80s Retro (Before 1990, 1980 - 1989)</option>
-                    </select>
-                  </div>
-                ) : (
-                  <div className="text-xs text-slate-500 italic bg-slate-950/20 p-3.5 rounded-xl border border-white/5">
-                    Tamil Song Era selection is only active when Tamil soundtrack curations are enabled.
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Analyze Trigger */}
-            <div className="flex gap-3">
-              <button
-                onClick={handleAnalyze}
-                disabled={loadingStep !== null || !imageFile}
-                className={`flex-1 py-3.5 rounded-2xl font-semibold flex items-center justify-center gap-2 cursor-pointer shadow-xl transition-all duration-300 ${
-                  imageFile && loadingStep === null
-                    ? 'bg-gradient-to-r from-cyan-600 via-cyan-500 to-teal-500 text-white hover:opacity-95 shadow-cyan-600/25 hover:shadow-cyan-600/35 hover:-translate-y-0.5'
-                    : 'bg-slate-900 border border-slate-800 text-slate-500 cursor-not-allowed'
-                }`}
-              >
-                {loadingStep ? (
-                  <>
-                    <RefreshCw className="w-5 h-5 animate-spin" />
-                    <span>Processing...</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-5 h-5" />
-                    <span>Analyze Vibe</span>
-                  </>
-                )}
-              </button>
-              
-              {results && loadingStep === null && (
                 <button
                   type="button"
-                  onClick={handleClearImage}
-                  className="px-4 py-3.5 rounded-2xl bg-slate-900 border border-slate-800 hover:border-slate-700 hover:bg-slate-800/40 text-slate-400 hover:text-slate-200 transition-all duration-300 active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
-                  title="Reset Curation"
+                  onClick={() => {
+                    handleClearImage();
+                    setActiveStep(1);
+                  }}
+                  className="w-full py-3.5 rounded-2xl bg-slate-900 border border-slate-800 hover:border-red-500/30 hover:bg-red-950/10 text-slate-400 hover:text-red-400 font-semibold text-sm transition-all duration-300 active:scale-95 flex items-center justify-center gap-2 cursor-pointer shadow-lg"
                 >
-                  <Trash2 className="w-5 h-5" />
-                  <span className="text-sm font-semibold">Reset</span>
+                  <Trash2 className="w-4 h-4" />
+                  <span>Clear Curation & Reset Deck</span>
                 </button>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-5">
+                {/* Step Indicators */}
+                <div className="flex items-center justify-between bg-slate-950/40 p-3 rounded-2xl border border-white/5 select-none">
+                  {[
+                    { number: 1, label: "Upload" },
+                    { number: 2, label: "Captions" },
+                    { number: 3, label: "Soundtrack" }
+                  ].map((s) => {
+                    const isActive = activeStep === s.number;
+                    const isCompleted = activeStep > s.number;
+                    return (
+                      <div key={s.number} className="flex items-center gap-1.5 flex-1 justify-center first:justify-start last:justify-end">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (s.number === 1 || (s.number === 2 && imagePreview) || (s.number === 3 && imagePreview && (options.captionsEnglish || options.captionsTamil))) {
+                              setActiveStep(s.number);
+                            }
+                          }}
+                          disabled={!imagePreview && s.number > 1}
+                          className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black border transition-all duration-300 ${
+                            isActive 
+                              ? 'bg-gradient-to-r from-cyan-600 via-cyan-500 to-teal-500 border-cyan-450 text-slate-950 shadow-glow-cyan/20 scale-105 cursor-pointer'
+                              : isCompleted
+                                ? 'bg-cyan-500/20 border-cyan-500/40 text-cyan-400 cursor-pointer'
+                                : 'bg-slate-900 border-slate-800 text-slate-500 cursor-not-allowed'
+                          }`}
+                        >
+                          {isCompleted ? "✓" : s.number}
+                        </button>
+                        <span className={`text-[10px] font-black uppercase tracking-wider hidden sm:inline ${
+                          isActive ? 'text-cyan-400 text-glow-cyan' : isCompleted ? 'text-slate-355' : 'text-slate-600'
+                        }`}>
+                          {s.label}
+                        </span>
+                        {s.number < 3 && <div className="h-0.5 bg-slate-850 flex-1 mx-1.5 rounded"></div>}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Step 1: Upload Media */}
+                {activeStep === 1 && (
+                  <div className="flex flex-col gap-5 animate-slide-in">
+                    {/* Drag and Drop Zone */}
+                    <div
+                      ref={dragRef}
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                      onClick={() => !imagePreview && fileInputRef.current?.click()}
+                      className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-300 min-h-[280px] relative overflow-hidden group ${
+                        imagePreview 
+                          ? 'border-cyan-500/20 bg-slate-950/20' 
+                          : 'border-slate-800 hover:border-cyan-500/50 bg-slate-900/10 hover:bg-cyan-950/5'
+                      }`}
+                    >
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => e.target.files?.[0] && handleFileChange(e.target.files[0])}
+                        className="hidden"
+                      />
+
+                      {imagePreview ? (
+                        <div className="w-full h-full flex flex-col items-center gap-4 relative">
+                          <div className="relative rounded-xl overflow-hidden border border-white/10 shadow-2xl max-h-[220px] w-full flex items-center justify-center bg-black/40">
+                            <img 
+                              src={imagePreview} 
+                              alt="Uploaded Preview" 
+                              className="object-contain max-h-[220px] w-full"
+                            />
+                          </div>
+                          {/* Control Buttons */}
+                          <div className="flex items-center gap-3 mt-1">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                fileInputRef.current?.click();
+                              }}
+                              className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-slate-350 hover:text-slate-100 border border-slate-850 hover:border-slate-700 rounded-xl text-xs font-semibold transition-all active:scale-95 cursor-pointer"
+                            >
+                              <RefreshCw className="w-3.5 h-3.5 text-cyan-400" />
+                              <span>Change Image</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleClearImage();
+                              }}
+                              className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-red-950/20 text-slate-400 hover:text-red-400 border border-slate-850 hover:border-red-500/20 rounded-xl text-xs font-semibold transition-all active:scale-95 cursor-pointer"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>Remove</span>
+                            </button>
+                          </div>
+                          {imageFile && (
+                            <div className="flex justify-between items-center w-full px-2">
+                              <span className="text-xs text-slate-400 truncate max-w-[200px]">{imageFile.name}</span>
+                              <span className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full font-mono">
+                                {(imageFile.size / (1024 * 1024)).toFixed(2)} MB
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center gap-3">
+                          <div className="p-4 rounded-full bg-cyan-950/20 border border-cyan-500/10 text-cyan-400 group-hover:scale-110 transition-transform duration-300 shadow-inner">
+                            <Upload className="w-6 h-6" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-slate-250">Drag & drop your image here</p>
+                            <p className="text-xs text-slate-500 mt-1">Supports JPG, PNG, WebP</p>
+                          </div>
+                          <span className="mt-3 text-xs font-semibold px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-350 hover:text-slate-100 transition-colors">
+                            Select File
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Sample Preset Images Section */}
+                    {!imagePreview && (
+                      <div className="animate-slide-in">
+                        <span className="text-xs font-semibold text-slate-400 block mb-3">Or choose a sample image:</span>
+                        <div className="grid grid-cols-3 gap-3">
+                          {SAMPLE_IMAGES.map((sample) => (
+                            <button
+                              key={sample.id}
+                              onClick={() => handleSelectSample(sample)}
+                              disabled={loadingSample !== null}
+                              className="group/btn relative rounded-xl overflow-hidden border border-slate-800 hover:border-cyan-500/40 aspect-square flex flex-col justify-end p-2 transition-all duration-300 focus:outline-none hover:shadow-lg hover:shadow-cyan-900/10 cursor-pointer"
+                            >
+                              <img 
+                                src={sample.url} 
+                                alt={sample.name} 
+                                className="absolute inset-0 object-cover w-full h-full brightness-50 group-hover/btn:scale-110 transition-transform duration-500"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-transparent"></div>
+                              {loadingSample === sample.id ? (
+                                <div className="absolute inset-0 flex items-center justify-center bg-slate-950/60 z-10">
+                                  <RefreshCw className="w-5 h-5 text-cyan-400 animate-spin" />
+                                </div>
+                              ) : null}
+                              <span className="relative z-10 text-[10px] font-bold text-slate-200 group-hover/btn:text-cyan-300 transition-colors truncate w-full text-left">
+                                {sample.name}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {imagePreview && (
+                      <button
+                        type="button"
+                        onClick={() => setActiveStep(2)}
+                        className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-cyan-600 via-cyan-500 to-teal-500 text-slate-950 font-black text-sm hover:opacity-95 shadow-lg shadow-cyan-600/20 active:scale-95 transition-all duration-300 flex items-center justify-center gap-1.5 cursor-pointer shadow-[3px_3px_0px_#0891b2]"
+                      >
+                        <span>Configure Captions</span>
+                        <span>→</span>
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Step 2: Configure Captions */}
+                {activeStep === 2 && (
+                  <div className="flex flex-col gap-5 animate-slide-in">
+                    <div className="glass-panel p-5 rounded-2xl border border-white/5 flex flex-col gap-4">
+                      <h3 className="text-sm font-black text-slate-200 flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-cyan-400" />
+                        Caption Preferences
+                      </h3>
+                      
+                      <div>
+                        <span className="text-xs text-slate-400 font-medium block mb-2">Captions & Quotes Language:</span>
+                        <div className="flex gap-4">
+                          <label className="flex items-center gap-2 text-sm text-slate-350 cursor-pointer">
+                            <input 
+                              type="checkbox" 
+                              checked={options.captionsEnglish}
+                              onChange={(e) => setOptions({ ...options, captionsEnglish: e.target.checked })}
+                              className="rounded border-slate-700 text-cyan-500 focus:ring-cyan-500/20 bg-slate-900 w-4 h-4 cursor-pointer"
+                            />
+                            English
+                          </label>
+                          <label className="flex items-center gap-2 text-sm text-slate-355 cursor-pointer">
+                            <input 
+                              type="checkbox" 
+                              checked={options.captionsTamil}
+                              onChange={(e) => setOptions({ ...options, captionsTamil: e.target.checked })}
+                              className="rounded border-slate-700 text-cyan-500 focus:ring-cyan-500/20 bg-slate-900 w-4 h-4 cursor-pointer"
+                            />
+                            Tamil
+                          </label>
+                        </div>
+                      </div>
+
+                      <div>
+                        <span className="text-xs text-slate-400 font-medium block mb-2">Caption Length / Format:</span>
+                        <select
+                          value={options.captionStyle}
+                          onChange={(e) => setOptions({ ...options, captionStyle: e.target.value })}
+                          className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-200 text-sm rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all cursor-pointer font-medium"
+                        >
+                          <option value="one_line">1 Line Caption (Clean & descriptive)</option>
+                          <option value="two_lines">2 Lines Caption (Engaging & detailed)</option>
+                          <option value="three_words">3 Words Caption (Minimalist & aesthetic)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <span className="text-xs text-slate-400 font-medium block mb-2">Target Social Platform:</span>
+                        <select
+                          value={options.captionPlatform}
+                          onChange={(e) => setOptions({ ...options, captionPlatform: e.target.value })}
+                          className="w-full bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-200 text-sm rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all cursor-pointer font-medium"
+                        >
+                          <option value="post">Instagram Post (Standard, storytelling, rich hashtags)</option>
+                          <option value="story">Instagram Story (Short, punchy aesthetic overlays)</option>
+                          <option value="reel">Instagram Reel (Viewer hook, retention description, CTA)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setActiveStep(1)}
+                        className="flex-1 py-3.5 rounded-2xl bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 font-bold text-sm transition-all active:scale-95 cursor-pointer shadow-[3px_3px_0px_rgba(255,255,255,0.05)]"
+                      >
+                        ← Back
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!options.captionsEnglish && !options.captionsTamil) {
+                            showToast('Please select at least one language for captions.', 'error');
+                            return;
+                          }
+                          setActiveStep(3);
+                        }}
+                        className="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-cyan-600 via-cyan-500 to-teal-500 text-slate-950 font-black text-sm hover:opacity-95 shadow-lg active:scale-95 transition-all duration-300 cursor-pointer shadow-[3px_3px_0px_#0891b2]"
+                      >
+                        Next →
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Step 3: Configure Music */}
+                {activeStep === 3 && (
+                  <div className="flex flex-col gap-5 animate-slide-in">
+                    <div className="glass-panel p-5 rounded-2xl border border-white/5 flex flex-col gap-4">
+                      <h3 className="text-sm font-black text-slate-200 flex items-center gap-2">
+                        <Music className="w-4 h-4 text-cyan-400 animate-pulse" />
+                        Soundtrack Preferences
+                      </h3>
+
+                      <div>
+                        <span className="text-xs text-slate-400 font-medium block mb-2">Song Playlists Language / Category:</span>
+                        <div className="flex flex-wrap gap-4">
+                          <label className="flex items-center gap-2 text-sm text-slate-350 cursor-pointer">
+                            <input 
+                              type="checkbox" 
+                              checked={options.songsTamil}
+                              onChange={(e) => setOptions({ ...options, songsTamil: e.target.checked })}
+                              className="rounded border-slate-700 text-cyan-500 focus:ring-cyan-500/20 bg-slate-900 w-4 h-4 cursor-pointer"
+                            />
+                            Tamil
+                          </label>
+                          <label className="flex items-center gap-2 text-sm text-slate-350 cursor-pointer">
+                            <input 
+                              type="checkbox" 
+                              checked={options.songsTamilChristian}
+                              onChange={(e) => setOptions({ ...options, songsTamilChristian: e.target.checked })}
+                              className="rounded border-slate-700 text-cyan-500 focus:ring-cyan-500/20 bg-slate-900 w-4 h-4 cursor-pointer"
+                            />
+                            Tamil Christian
+                          </label>
+                          <label className="flex items-center gap-2 text-sm text-slate-350 cursor-pointer">
+                            <input 
+                              type="checkbox" 
+                              checked={options.songsEnglish}
+                              onChange={(e) => setOptions({ ...options, songsEnglish: e.target.checked })}
+                              className="rounded border-slate-700 text-cyan-500 focus:ring-cyan-500/20 bg-slate-900 w-4 h-4 cursor-pointer"
+                            />
+                            English
+                          </label>
+                          <label className="flex items-center gap-2 text-sm text-slate-350 cursor-pointer">
+                            <input 
+                              type="checkbox" 
+                              checked={options.songsHindi}
+                              onChange={(e) => setOptions({ ...options, songsHindi: e.target.checked })}
+                              className="rounded border-slate-700 text-cyan-500 focus:ring-cyan-500/20 bg-slate-900 w-4 h-4 cursor-pointer"
+                            />
+                            Hindi
+                          </label>
+                        </div>
+                      </div>
+
+                      {options.songsTamil ? (
+                        <div className="animate-slide-in">
+                          <span className="text-xs text-slate-400 font-medium block mb-2">Tamil Song Era / Generation:</span>
+                          <select
+                            value={options.songEra}
+                            onChange={(e) => setOptions({ ...options, songEra: e.target.value })}
+                            className="w-full bg-slate-905 border border-slate-800 hover:border-slate-700 text-slate-205 text-sm rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all cursor-pointer font-medium"
+                          >
+                            <option value="latest">Latest Hits (2010 to Present Year)</option>
+                            <option value="2010s">2010s Hits (2010 to Present Year - Throwbacks)</option>
+                            <option value="2000s">2000s Hits (2000 to Present Year Classics)</option>
+                            <option value="90s">90s Hits (Before 2000, 1990 - 1999)</option>
+                            <option value="80s">80s Retro (Before 1990, 1980 - 1989)</option>
+                          </select>
+                        </div>
+                      ) : (
+                        <div className="text-xs text-slate-500 italic bg-slate-950/20 p-3.5 rounded-xl border border-white/5">
+                          Tamil Song Era selection is only active when Tamil soundtrack curations are enabled.
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setActiveStep(2)}
+                        className="py-3.5 px-5 rounded-2xl bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 font-bold text-sm transition-all active:scale-95 cursor-pointer shadow-[3px_3px_0px_rgba(255,255,255,0.05)]"
+                      >
+                        ← Back
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleAnalyze}
+                        disabled={loadingStep !== null || !imageFile}
+                        className={`flex-1 py-3.5 rounded-2xl font-black flex items-center justify-center gap-2 cursor-pointer shadow-xl transition-all duration-350 shadow-[3px_3px_0px_#0891b2] ${
+                          imageFile && loadingStep === null
+                            ? 'bg-gradient-to-r from-cyan-600 via-cyan-500 to-teal-500 text-slate-950 hover:opacity-95 shadow-cyan-600/25 hover:shadow-cyan-600/35 hover:-translate-y-0.5 active:scale-95'
+                            : 'bg-slate-900 border border-slate-800 text-slate-500 cursor-not-allowed'
+                        }`}
+                      >
+                        {loadingStep ? (
+                          <>
+                            <RefreshCw className="w-5 h-5 animate-spin" />
+                            <span>Processing...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-5 h-5" />
+                            <span>Analyze Vibe ✨</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </section>
 
