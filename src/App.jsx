@@ -1137,7 +1137,7 @@ export default function App() {
           {loadingStep && (
             <div className="glass-panel p-6 md:p-8 rounded-3xl grid grid-cols-1 md:grid-cols-12 gap-6 items-stretch min-h-[460px] animate-slide-in border border-cyan-500/20 bg-gradient-to-b from-slate-900/60 to-slate-950/80 shadow-glow-cyan/5">
               
-              {/* Scan Beam & Hologram animations */}
+              {/* Complex holographic dashboard animations */}
               <style dangerouslySetInnerHTML={{__html: `
                 @keyframes scan-beam {
                   0%, 100% { top: 0%; }
@@ -1151,6 +1151,18 @@ export default function App() {
                   0%, 100% { box-shadow: 0 0 12px rgba(16, 185, 129, 0.4); border-color: rgba(16, 185, 129, 0.5); }
                   50% { box-shadow: 0 0 20px rgba(52, 211, 153, 0.65); border-color: rgba(52, 211, 153, 0.8); }
                 }
+                @keyframes visor-sweep {
+                  0%, 100% { cx: 78px; fill: #10b981; }
+                  50% { cx: 122px; fill: #06b6d4; }
+                }
+                @keyframes voice-wave {
+                  0%, 100% { transform: translate(82px, 112px) scaleY(1); }
+                  50% { transform: translate(82px, 112px) scaleY(0.4); }
+                }
+                @keyframes beam-flow {
+                  0% { stroke-dashoffset: 0; }
+                  100% { stroke-dashoffset: -37; }
+                }
                 .animate-scan-beam {
                   animation: scan-beam 2s ease-in-out infinite;
                 }
@@ -1160,69 +1172,158 @@ export default function App() {
                 .animate-holo-glow {
                   animation: holo-glow 3s ease-in-out infinite;
                 }
+                .animate-visor-sweep {
+                  animation: visor-sweep 1.8s ease-in-out infinite;
+                }
+                .animate-voice-wave {
+                  animation: voice-wave 0.8s ease-in-out infinite;
+                }
+                .animate-beam-flow {
+                  animation: beam-flow 1.2s linear infinite;
+                }
               `}} />
 
               {/* Left Column: Robot Scanning Panel */}
-              <div className="md:col-span-5 relative rounded-2xl border border-cyan-500/30 bg-slate-950/70 overflow-hidden min-h-[290px] md:min-h-full flex flex-col justify-end p-4 shadow-inner">
-                {/* Robot Image Base */}
-                <img 
-                  src="/humanoid_scanner.jpg" 
-                  alt="AI Humanoid Scan Assistant" 
-                  className="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-screen scale-102 transition-transform duration-700"
-                />
-
+              <div className="md:col-span-6 relative rounded-2xl border border-cyan-500/30 bg-slate-950/70 overflow-hidden min-h-[300px] md:min-h-full flex flex-col items-center justify-between p-5 shadow-inner gap-6">
+                
                 {/* Cyberpunk Grid Overlay */}
                 <div 
-                  className="absolute inset-0 opacity-[0.08]"
+                  className="absolute inset-0 opacity-[0.05]"
                   style={{
                     backgroundImage: `
                       linear-gradient(rgba(34, 197, 94, 0.3) 1px, transparent 1px),
                       linear-gradient(90deg, rgba(34, 197, 94, 0.3) 1px, transparent 1px)
                     `,
-                    backgroundSize: '24px 24px',
+                    backgroundSize: '20px 20px',
                   }}
                 />
 
-                {/* Floating Holographic Picture Matrix */}
-                {imagePreview && (
-                  <div 
-                    className="absolute w-[110px] h-[110px] rounded-xl border border-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.4)] overflow-hidden animate-holo-drift animate-holo-glow pointer-events-none"
-                    style={{
-                      top: '12%',
-                      left: '8%',
-                    }}
-                  >
-                    <img src={imagePreview} className="w-full h-full object-cover" alt="Uploaded Hologram" />
-                    {/* Laser Scan Beam */}
-                    <div className="absolute left-0 right-0 h-[2px] bg-green-400 shadow-[0_0_10px_#4ade80] animate-scan-beam" />
-                  </div>
-                )}
+                {/* Visual Scanner Arena (Robot + Photo Side-by-Side on Desktop, stacked on Mobile) */}
+                <div className="w-full flex flex-col sm:flex-row items-center justify-center gap-4 md:gap-6 relative my-auto">
+                  
+                  {/* Animated Humanoid Robot SVG Head */}
+                  <div className="relative z-10 shrink-0">
+                    <svg viewBox="0 0 200 200" className="w-32 h-32 md:w-36 md:h-36 drop-shadow-[0_0_12px_rgba(6,182,212,0.35)]">
+                      <defs>
+                        <linearGradient id="roboGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stopColor="#06b6d4" />
+                          <stop offset="50%" stopColor="#10b981" />
+                          <stop offset="100%" stopColor="#3b82f6" />
+                        </linearGradient>
+                        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                          <feGaussianBlur stdDeviation="3" result="blur" />
+                          <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                        </filter>
+                      </defs>
 
-                {/* Speech Bubble / Curation Logs overlay */}
-                <div className="relative bg-slate-950/90 backdrop-blur-sm border border-emerald-500/30 p-3 rounded-xl text-left shadow-lg">
-                  <div className="flex items-center gap-1.5 mb-1">
+                      {/* Radar rings */}
+                      <circle cx="100" cy="100" r="95" fill="none" stroke="rgba(6, 182, 212, 0.08)" strokeWidth="1" />
+                      <circle cx="100" cy="100" r="88" fill="none" stroke="rgba(16, 185, 129, 0.06)" strokeWidth="1" strokeDasharray="4 4" className="animate-spin-slow" />
+
+                      {/* Side ears */}
+                      <rect x="42" y="90" width="6" height="20" rx="2" fill="#1e293b" stroke="url(#roboGrad)" strokeWidth="1.5" />
+                      <rect x="152" y="90" width="6" height="20" rx="2" fill="#1e293b" stroke="url(#roboGrad)" strokeWidth="1.5" />
+
+                      {/* Neck */}
+                      <path d="M86 145 L114 145 L118 165 L82 165 Z" fill="#0f172a" stroke="url(#roboGrad)" strokeWidth="1.5" />
+                      <line x1="92" y1="152" x2="108" y2="152" stroke="rgba(6, 182, 212, 0.4)" strokeWidth="2" />
+                      <line x1="92" y1="158" x2="108" y2="158" stroke="rgba(16, 185, 129, 0.4)" strokeWidth="2" />
+
+                      {/* Head Chassis */}
+                      <path d="M60 50 L140 50 L145 105 Q145 142 100 142 Q55 142 55 105 Z" fill="#0f172a" stroke="url(#roboGrad)" strokeWidth="2" />
+                      {/* Face Plate */}
+                      <path d="M68 60 L132 60 L135 100 Q135 132 100 132 Q65 132 65 100 Z" fill="#020617" stroke="rgba(6, 182, 212, 0.2)" strokeWidth="1" />
+
+                      {/* Glowing Brain Matrix */}
+                      <circle cx="100" cy="68" r="2.5" fill="#06b6d4" className="animate-pulse" />
+                      <line x1="100" y1="70" x2="100" y2="74" stroke="rgba(6, 182, 212, 0.4)" strokeWidth="1" />
+                      <circle cx="84" cy="66" r="1.5" fill="#10b981" />
+                      <line x1="84" y1="67" x2="94" y2="78" stroke="rgba(16, 185, 129, 0.3)" strokeWidth="1" />
+                      <circle cx="116" cy="66" r="1.5" fill="#3b82f6" />
+                      <line x1="116" y1="67" x2="106" y2="78" stroke="rgba(59, 130, 246, 0.3)" strokeWidth="1" />
+
+                      {/* Visor Eye Plate */}
+                      <rect x="72" y="78" width="56" height="16" rx="4" fill="#090d16" stroke="rgba(6, 182, 212, 0.3)" strokeWidth="1" />
+                      
+                      {/* Visor Scanning Dot */}
+                      <circle cx="100" cy="86" r="3.5" fill="#10b981" filter="url(#glow)" className="animate-visor-sweep" />
+
+                      {/* Speaking Waveform */}
+                      <g className="animate-voice-wave" transform="translate(82, 112)">
+                        <rect x="0" y="-3" width="2.5" height="10" rx="1" fill="#10b981" />
+                        <rect x="5" y="-6" width="2.5" height="16" rx="1" fill="#06b6d4" />
+                        <rect x="10" y="-9" width="2.5" height="22" rx="1" fill="#3b82f6" />
+                        <rect x="15" y="-9" width="2.5" height="22" rx="1" fill="#10b981" />
+                        <rect x="20" y="-6" width="2.5" height="16" rx="1" fill="#06b6d4" />
+                        <rect x="25" y="-3" width="2.5" height="10" rx="1" fill="#3b82f6" />
+                      </g>
+                    </svg>
+                  </div>
+
+                  {/* Animated Laser Connector (Left to Right beam flow) */}
+                  <div className="absolute inset-0 pointer-events-none hidden sm:block">
+                    <svg className="w-full h-full" viewBox="0 0 300 150">
+                      <path 
+                        d="M 120,75 C 160,50 180,90 205,75" 
+                        fill="none" 
+                        stroke="rgba(16, 185, 129, 0.12)" 
+                        strokeWidth="1.5" 
+                      />
+                      <path 
+                        d="M 120,75 C 160,50 180,90 205,75" 
+                        fill="none" 
+                        stroke="url(#beamGrad)" 
+                        strokeWidth="2" 
+                        strokeDasharray="8 15"
+                        className="animate-beam-flow" 
+                      />
+                      <defs>
+                        <linearGradient id="beamGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                          <stop offset="0%" stopColor="#10b981" stopOpacity="0.8" />
+                          <stop offset="50%" stopColor="#06b6d4" stopOpacity="0.8" />
+                          <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.8" />
+                        </linearGradient>
+                      </defs>
+                    </svg>
+                  </div>
+
+                  {/* Floating Holographic Photo */}
+                  {imagePreview && (
+                    <div className="relative shrink-0 z-10 w-24 h-24 md:w-28 md:h-28 rounded-2xl border-2 border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.4)] overflow-hidden animate-holo-drift animate-holo-glow">
+                      <img src={imagePreview} className="w-full h-full object-cover" alt="Scan Target" />
+                      {/* Sweep scan bar overlay */}
+                      <div className="absolute left-0 right-0 h-[2.5px] bg-green-400 shadow-[0_0_12px_#4ade80] animate-scan-beam" />
+                    </div>
+                  )}
+
+                </div>
+
+                {/* Speech read-out */}
+                <div className="w-full bg-slate-950/90 backdrop-blur-sm border border-emerald-500/30 p-3.5 rounded-xl text-left shadow-lg">
+                  <div className="flex items-center gap-1.5 mb-1.5">
                     <span className="flex h-1.5 w-1.5 relative">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                       <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
                     </span>
                     <span className="text-[9px] font-bold tracking-widest text-emerald-400 uppercase font-mono">
-                      ROBOTIC COGNITIVE ENGINE
+                      ROBOT COGNITIVE READOUT
                     </span>
                   </div>
-                  <p className="text-[11px] font-mono text-slate-250 leading-relaxed min-h-[44px] border-l border-emerald-500/50 pl-1.5">
+                  <p className="text-xs font-mono text-slate-200 leading-relaxed min-h-[44px] border-l-2 border-emerald-500/50 pl-2">
                     {getRobotDialogue(loadingStatus, interimResults)}
                   </p>
                 </div>
+
               </div>
 
               {/* Right Column: Steps & Status Info */}
-              <div className="md:col-span-7 flex flex-col justify-center text-left gap-5 p-2">
+              <div className="md:col-span-6 flex flex-col justify-center text-left gap-5 p-2">
                 <div className="flex flex-col gap-1.5">
                   <div className="flex items-center gap-2">
                     <RefreshCw className="w-4 h-4 text-cyan-400 animate-spin" />
                     <span className="text-xs font-bold uppercase tracking-wider text-cyan-400 font-mono">Curating Vibe</span>
                   </div>
-                  <h3 className="text-lg font-bold text-slate-100 text-glow-cyan leading-snug">
+                  <h3 className="text-base md:text-lg font-bold text-slate-100 text-glow-cyan leading-snug">
                     {loadingStatus}
                   </h3>
                   <p className="text-xs text-slate-400 leading-relaxed">
