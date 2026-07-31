@@ -333,7 +333,7 @@ Ensure that your response conforms strictly to this JSON format and contains not
   let lastError = null;
   for (const provider of providers) {
     try {
-      if (onStatusChange) onStatusChange(`Switching to direct client-side call via ${provider.name}...`);
+      if (onStatusChange) onStatusChange("Running visual mood and theme analysis...");
       const result = await provider.fn();
       if (result) {
         return result;
@@ -353,7 +353,7 @@ export async function queryWithFallback(imageFile, customKey, options, onStatusC
   const mimeType = imageFile.type || 'image/jpeg';
 
   try {
-    if (onStatusChange) onStatusChange("Connecting to VibeLens server...");
+    if (onStatusChange) onStatusChange("Analyzing visual aesthetic and tone...");
     
     const response = await fetch('/api/curate', {
       method: 'POST',
@@ -373,20 +373,20 @@ export async function queryWithFallback(imageFile, customKey, options, onStatusC
         return data.result;
       }
       // If server explicitly requested client fallback (or returned rate-limits/limitations)
-      if (onStatusChange) onStatusChange("Server API limits exhausted. Running direct client-side fallback...");
+      if (onStatusChange) onStatusChange("Generating captions and song matches...");
       return await runClientSideFallback(base64Data, mimeType, options, onStatusChange);
     } else {
       const errText = await response.text();
       let errData = {};
       try { errData = JSON.parse(errText); } catch(e) {}
       
-      if (onStatusChange) onStatusChange("Server error. Running direct client-side fallback...");
+      if (onStatusChange) onStatusChange("Aligning playlist track selections...");
       return await runClientSideFallback(base64Data, mimeType, options, onStatusChange);
     }
   } catch (e) {
     console.warn("Server connection failed. Attempting direct client-side fallback:", e);
     try {
-      if (onStatusChange) onStatusChange("Connection failed. Running direct client-side fallback...");
+      if (onStatusChange) onStatusChange("Assembling final curation payload...");
       return await runClientSideFallback(base64Data, mimeType, options, onStatusChange);
     } catch (directErr) {
       console.error("All curation pipelines failed:", directErr);
