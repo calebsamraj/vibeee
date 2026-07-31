@@ -465,6 +465,7 @@ async function runClientSideFallback(base64Data, mimeType, options, onStatusChan
    Generate 2-3 song recommendations (Format: "Song Title - Artist") that specifically match the background vibe, visual atmosphere, setting, and aesthetic tone of the image (for example, if the background has cyberpunk/neon elements, recommend synthwave/electronic music; if it is a cozy indoor cafe setting, recommend lofi/acoustic/jazz; if it is an outdoor nature/sunset setting, recommend ambient/chill/indie music). If "Tamil Christian" is selected, recommend Christian worship/devotional songs in Tamil that match the serene, grateful, peaceful, or spiritual vibe of the setting.
 4. "captionExplanation": A 1-2 sentence description explaining the mood and tone of the generated captions and why they fit the visual elements of this specific picture.
 5. "songExplanation": A 1-2 sentence explanation detailing why these specific song recommendations and music genres were chosen to complement the visual aesthetics, setting, and mood of the picture.
+6. "lookDescription": If there is a person (or people) in the photo, write a 2-3 sentence engaging description analyzing their appearance, clothing look, style, accessories, colors, expressions, aesthetic vibe, and what details make their look stand out (its "gloss" or highlights). If there is no person in the photo, return an empty string.
 
 Ensure that your response conforms strictly to this JSON format and contains nothing else (no markdown wrappers like \`\`\`json, just raw JSON text):
 {
@@ -476,7 +477,8 @@ Ensure that your response conforms strictly to this JSON format and contains not
   "songsHindi": ["Song Title - Artist", ...],
   "songsTamilChristian": ["Song Title - Artist", ...],
   "captionExplanation": "Brief explanation of why the captions fit the photo context.",
-  "songExplanation": "Brief explanation of why the songs fit the photo vibe."
+  "songExplanation": "Brief explanation of why the songs fit the photo vibe.",
+  "lookDescription": "Brief description of the person's look and style, or empty string if no person is present."
 }`;
 
   // Read Vite env variables

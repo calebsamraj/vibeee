@@ -793,6 +793,18 @@ export default function App() {
                   </span>
                 </div>
               )}
+
+              {results.lookDescription && (
+                <div className="glass-panel p-6 rounded-3xl flex flex-col gap-3 border border-pink-500/20 bg-pink-950/10">
+                  <h3 className="text-base font-bold text-slate-200 flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-pink-400" />
+                    Subject's Style & Look ("Gloss")
+                  </h3>
+                  <p className="text-sm text-slate-300 leading-relaxed">
+                    {results.lookDescription}
+                  </p>
+                </div>
+              )}
               
               {/* Captions Block */}
               <div className="glass-panel p-6 rounded-3xl flex flex-col gap-4">
