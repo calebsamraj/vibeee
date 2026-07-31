@@ -58,6 +58,7 @@ export default function App() {
   const [bgMusicPlaying, setBgMusicPlaying] = useState(false);
   
   const [toast, setToast] = useState(null);
+  const [interimResults, setInterimResults] = useState(null);
   const [copiedCaptionIndex, setCopiedCaptionIndex] = useState(null);
   const [copiedHashtags, setCopiedHashtags] = useState(false);
   const [floatingEmojis, setFloatingEmojis] = useState([]);
@@ -247,6 +248,7 @@ export default function App() {
     setImageFile(null);
     setImagePreview('');
     setResults(null);
+    setInterimResults(null);
     setSongMetadata({});
   };
 
@@ -275,10 +277,12 @@ export default function App() {
     setLoadingStep('curating');
     setLoadingStatus('Initializing AI models...');
     setResults(null);
+    setInterimResults(null);
     setSongMetadata({});
     
     try {
       const curatedData = await queryWithFallback(imageFile, '', options, setLoadingStatus);
+      setInterimResults(curatedData);
       
       const metadataDict = {};
       const TARGET_COUNT = 3; // aim for 2-3 playable tracks per selected category
@@ -593,6 +597,34 @@ export default function App() {
         </div>
       </div>
     );
+  };
+
+  const getRobotDialogue = (status, interim) => {
+    if (interim && interim.captionExplanation) {
+      return `Optical scan complete. Image description: "${interim.captionExplanation}"`;
+    }
+    if (status.includes('Initializing')) {
+      return "Booting cognitive humanoid matrix... Loading image pixels into visual memory registers.";
+    }
+    if (status.includes('aesthetic') || status.includes('tone')) {
+      return "Analyzing visual aesthetic ratios, brightness levels, and contrast matrices to identify scene signature.";
+    }
+    if (status.includes('mood') || status.includes('theme')) {
+      return "Detecting foreground objects, semantic layouts, and environmental colors to establish mood context.";
+    }
+    if (status.includes('Generating') || status.includes('captions')) {
+      return "Structuring caption vocabularies, drafting multi-language copies, and tagging trending social hashtags.";
+    }
+    if (status.includes('Verifying') || status.includes('previews')) {
+      return "Accessing musical databases... Verifying track previews and testing streaming links for curation.";
+    }
+    if (status.includes('Finding') || status.includes('replacement')) {
+      return "Locating fallback soundtrack items to satisfy year/era bounds and verification guidelines.";
+    }
+    if (status.includes('Preparing')) {
+      return "Consolidating sensory output payloads. Preparing interactive player deck interface...";
+    }
+    return "Analyzing picture content... applying deep learning visual nodes.";
   };
 
   return (
@@ -1103,28 +1135,103 @@ export default function App() {
         <section className="lg:col-span-7 flex flex-col gap-6">
           {/* Loading States */}
           {loadingStep && (
-            <div className="glass-panel p-8 md:p-12 rounded-3xl flex flex-col items-center justify-center text-center gap-8 min-h-[450px] animate-slide-in border border-cyan-500/20 bg-gradient-to-b from-slate-900/60 to-slate-950/80 shadow-glow-cyan/5">
-              {/* Spinning Disc with Pulse Rings */}
-              <div className="relative flex items-center justify-center">
-                <div className="absolute w-32 h-32 rounded-full bg-cyan-500/10 animate-ping duration-1000"></div>
-                <div className="absolute w-28 h-28 rounded-full bg-teal-500/5 animate-pulse duration-700"></div>
-                <div className="w-24 h-24 rounded-full border-4 border-slate-800 border-t-cyan-400 border-r-pink-400 animate-spin flex items-center justify-center bg-slate-950">
-                  <Disc className="w-10 h-10 text-cyan-400 animate-spin-slow" />
+            <div className="glass-panel p-6 md:p-8 rounded-3xl grid grid-cols-1 md:grid-cols-12 gap-6 items-stretch min-h-[460px] animate-slide-in border border-cyan-500/20 bg-gradient-to-b from-slate-900/60 to-slate-950/80 shadow-glow-cyan/5">
+              
+              {/* Scan Beam & Hologram animations */}
+              <style dangerouslySetInnerHTML={{__html: `
+                @keyframes scan-beam {
+                  0%, 100% { top: 0%; }
+                  50% { top: 100%; }
+                }
+                @keyframes holo-drift {
+                  0%, 100% { transform: translateY(0px) rotate(-6deg) scale(1); }
+                  50% { transform: translateY(-6px) rotate(-4deg) scale(1.02); }
+                }
+                @keyframes holo-glow {
+                  0%, 100% { box-shadow: 0 0 12px rgba(16, 185, 129, 0.4); border-color: rgba(16, 185, 129, 0.5); }
+                  50% { box-shadow: 0 0 20px rgba(52, 211, 153, 0.65); border-color: rgba(52, 211, 153, 0.8); }
+                }
+                .animate-scan-beam {
+                  animation: scan-beam 2s ease-in-out infinite;
+                }
+                .animate-holo-drift {
+                  animation: holo-drift 4s ease-in-out infinite;
+                }
+                .animate-holo-glow {
+                  animation: holo-glow 3s ease-in-out infinite;
+                }
+              `}} />
+
+              {/* Left Column: Robot Scanning Panel */}
+              <div className="md:col-span-5 relative rounded-2xl border border-cyan-500/30 bg-slate-950/70 overflow-hidden min-h-[290px] md:min-h-full flex flex-col justify-end p-4 shadow-inner">
+                {/* Robot Image Base */}
+                <img 
+                  src="/humanoid_scanner.jpg" 
+                  alt="AI Humanoid Scan Assistant" 
+                  className="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-screen scale-102 transition-transform duration-700"
+                />
+
+                {/* Cyberpunk Grid Overlay */}
+                <div 
+                  className="absolute inset-0 opacity-[0.08]"
+                  style={{
+                    backgroundImage: `
+                      linear-gradient(rgba(34, 197, 94, 0.3) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(34, 197, 94, 0.3) 1px, transparent 1px)
+                    `,
+                    backgroundSize: '24px 24px',
+                  }}
+                />
+
+                {/* Floating Holographic Picture Matrix */}
+                {imagePreview && (
+                  <div 
+                    className="absolute w-[110px] h-[110px] rounded-xl border border-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.4)] overflow-hidden animate-holo-drift animate-holo-glow pointer-events-none"
+                    style={{
+                      top: '12%',
+                      left: '8%',
+                    }}
+                  >
+                    <img src={imagePreview} className="w-full h-full object-cover" alt="Uploaded Hologram" />
+                    {/* Laser Scan Beam */}
+                    <div className="absolute left-0 right-0 h-[2px] bg-green-400 shadow-[0_0_10px_#4ade80] animate-scan-beam" />
+                  </div>
+                )}
+
+                {/* Speech Bubble / Curation Logs overlay */}
+                <div className="relative bg-slate-950/90 backdrop-blur-sm border border-emerald-500/30 p-3 rounded-xl text-left shadow-lg">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className="flex h-1.5 w-1.5 relative">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                    </span>
+                    <span className="text-[9px] font-bold tracking-widest text-emerald-400 uppercase font-mono">
+                      ROBOTIC COGNITIVE ENGINE
+                    </span>
+                  </div>
+                  <p className="text-[11px] font-mono text-slate-250 leading-relaxed min-h-[44px] border-l border-emerald-500/50 pl-1.5">
+                    {getRobotDialogue(loadingStatus, interimResults)}
+                  </p>
                 </div>
               </div>
-              
-              <div className="flex flex-col gap-6 max-w-md w-full">
-                <div className="flex flex-col gap-2">
-                  <h3 className="text-xl font-bold text-slate-100 text-glow-cyan">
+
+              {/* Right Column: Steps & Status Info */}
+              <div className="md:col-span-7 flex flex-col justify-center text-left gap-5 p-2">
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center gap-2">
+                    <RefreshCw className="w-4 h-4 text-cyan-400 animate-spin" />
+                    <span className="text-xs font-bold uppercase tracking-wider text-cyan-400 font-mono">Curating Vibe</span>
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-100 text-glow-cyan leading-snug">
                     {loadingStatus}
                   </h3>
-                  <p className="text-xs text-slate-400">
-                    Your photo's aesthetic is being analyzed across multiple AI models.
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    AI models are currently decoding your photo's visual components and mapping them to our music databases.
                   </p>
                 </div>
 
                 {/* Steps Checklist */}
-                <div className="flex flex-col gap-2.5 text-left bg-slate-950/40 p-4.5 rounded-2xl border border-white/5">
+                <div className="flex flex-col gap-2.5 bg-slate-950/40 p-4 rounded-xl border border-white/5">
                   {[
                     { key: "Analyzing visual aesthetic and tone...", label: "Visual Tone & Aesthetic Analysis" },
                     { key: "Running visual mood and theme analysis...", label: "Visual Mood & Theme Extraction" },
@@ -1174,6 +1281,7 @@ export default function App() {
                   })}
                 </div>
               </div>
+
             </div>
           )}
 
