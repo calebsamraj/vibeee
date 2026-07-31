@@ -1152,10 +1152,10 @@ export default function App() {
                 <div className="flex-1 flex flex-col gap-3.5 w-full">
                   <div>
                     <span className="text-[10px] uppercase font-extrabold tracking-wider bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded text-cyan-400">
-                      Vibeee Deck v1.0
+                      SAM GENZ Deck v1.0
                     </span>
                     <h3 className="text-xl font-black text-slate-100 mt-2 text-glow-cyan">
-                      {playingTrackUrl ? "NOW PLAYING PREVIEW" : "DECK READY"}
+                      {playingTrackUrl ? "NOW PLAYING PREVIEW" : "I DESCRIBED YOUR PICTURE"}
                     </h3>
                     <p className="text-xs text-slate-400 mt-0.5 font-medium truncate">
                       {playingTrackUrl 
