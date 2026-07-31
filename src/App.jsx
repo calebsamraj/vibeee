@@ -13,19 +13,19 @@ const SAMPLE_IMAGES = [
   {
     id: 'cyberpunk-city',
     name: 'Neon Cyberpunk',
-    url: 'https://images.unsplash.com/photo-1515621061946-eff1c2a352bd?w=600&auto=format&fit=crop&q=80',
+    url: '/samples/cyberpunk-city.jpg',
     description: 'A glowing futuristic city street with neon signs'
   },
   {
     id: 'nature-sunset',
     name: 'Serene Sunset',
-    url: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=600&auto=format&fit=crop&q=80',
+    url: '/samples/nature-sunset.jpg',
     description: 'A beautiful valley with mountains and sunset glow'
   },
   {
     id: 'retro-cafe',
     name: 'Cozy Cafe',
-    url: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=600&auto=format&fit=crop&q=80',
+    url: '/samples/retro-cafe.jpg',
     description: 'A warm cozy cafe interior with vintage details'
   }
 ];
@@ -848,6 +848,15 @@ export default function App() {
                     })}
                   </div>
                 )}
+                {results.captionExplanation && (
+                  <div className="mt-4 p-4 rounded-2xl bg-cyan-950/10 border border-cyan-500/10 text-xs text-slate-300 leading-relaxed flex items-start gap-2.5">
+                    <Sparkles className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+                    <div>
+                      <strong className="text-cyan-400 font-semibold block mb-0.5">Vibe Analysis:</strong>
+                      {results.captionExplanation}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Hashtags Block */}
@@ -967,6 +976,18 @@ export default function App() {
                 )}
 
               </div>
+
+              {results.songExplanation && (
+                <div className="glass-panel p-6 rounded-3xl flex flex-col gap-3 bg-cyan-950/10 border border-cyan-500/10">
+                  <h4 className="text-sm font-bold text-slate-200 flex items-center gap-2">
+                    <Music className="w-4 h-4 text-cyan-400 animate-pulse" />
+                    Visual Soundtrack Rationale
+                  </h4>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    {results.songExplanation}
+                  </p>
+                </div>
+              )}
 
             </div>
           )}
