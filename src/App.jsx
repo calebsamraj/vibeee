@@ -268,11 +268,7 @@ export default function App() {
     } catch (err) {
       console.error('Workflow error:', err);
       const msg = err.message || '';
-      if (msg.includes('exhausted') || msg.includes('failed') || msg.includes('limit')) {
-        showToast('Curation failed. Please verify that VITE_GEMINI_API_KEY is correctly configured in your environment or Vercel dashboard.', 'error');
-      } else {
-        showToast(msg || 'An error occurred during processing.', 'error');
-      }
+      showToast(`Curation failed: ${msg || 'All AI pipelines failed'}. Please verify your API key configurations.`, 'error');
     } finally {
       setLoadingStep(null);
       setLoadingStatus('');
