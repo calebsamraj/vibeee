@@ -177,7 +177,7 @@ async function callGroqDirect(base64Data, mimeType, apiKey, prompt) {
 
 // 3. OpenRouter Direct Call (with model rotation fallback)
 async function callOpenRouterDirect(base64Data, mimeType, apiKey, prompt, onStatusChange) {
-  const url = 'https://openrouter.ai/api/v1/responses';
+  const url = 'https://openrouter.ai/api/v1/chat/completions';
   
   const openRouterModels = [
     "mistralai/mistral-medium-latest",

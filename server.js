@@ -221,7 +221,7 @@ async function callGroq(base64Data, mimeType, apiKey, prompt) {
 
 // 3. OpenRouter Free Call
 async function callOpenRouter(base64Data, mimeType, apiKey, prompt) {
-  const url = 'https://openrouter.ai/api/v1/responses';
+  const url = 'https://openrouter.ai/api/v1/chat/completions';
   
   const openRouterModels = [
     "mistralai/mistral-medium-latest",
