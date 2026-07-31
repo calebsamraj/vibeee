@@ -64,46 +64,69 @@ const fetchWithTimeout = (url, options, timeoutMs = 30000) => {
   });
 };
 
-// 1. Google Gemini Direct Call
+// 1. Google Gemini Direct Call (with model rotation fallback)
 async function callGeminiDirect(base64Data, mimeType, apiKey, prompt) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
-  const requestBody = {
-    contents: [
-      {
-        parts: [
-          { text: prompt },
+  const models = [
+    "gemini-3.6-flash",
+    "gemini-3.5-flash-lite",
+    "gemini-3.1-flash-lite",
+    "gemini-3.5-flash",
+    "gemini-3-flash",
+    "gemini-2.5-flash-lite",
+    "gemini-2.5-flash"
+  ];
+
+  let lastErr = null;
+  for (const model of models) {
+    try {
+      console.log(`[Client Direct] Attempting Gemini model: ${model}`);
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const requestBody = {
+        contents: [
           {
-            inlineData: {
-              mimeType: mimeType,
-              data: base64Data
-            }
+            parts: [
+              { text: prompt },
+              {
+                inlineData: {
+                  mimeType: mimeType,
+                  data: base64Data
+                }
+              }
+            ]
           }
-        ]
+        ],
+        generationConfig: {
+          responseMimeType: "application/json"
+        }
+      };
+
+      const response = await fetchWithTimeout(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody)
+      }, 30000);
+
+      const textContent = await response.text();
+      if (!response.ok) {
+        throw new Error(`Model ${model} failed with status ${response.status}: ${textContent}`);
       }
-    ],
-    generationConfig: {
-      responseMimeType: "application/json"
+
+      const result = JSON.parse(textContent);
+      const responseText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!responseText) {
+        throw new Error(`Empty candidate text from Gemini response for model ${model}`);
+      }
+
+      console.log(`[Client Direct] Gemini Success using model: ${model}`);
+      const displayName = model.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      return { ...cleanAndParseJson(responseText), _modelUsed: `Gemini (${displayName}) [Direct Client]` };
+    } catch (e) {
+      console.warn(`[Client Direct] Gemini model ${model} failed:`, e.message || e);
+      lastErr = e;
     }
-  };
-
-  const response = await fetchWithTimeout(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(requestBody)
-  }, 30000);
-
-  const textContent = await response.text();
-  if (!response.ok) {
-    throw new Error(`Gemini API returned error: ${textContent}`);
   }
 
-  const result = JSON.parse(textContent);
-  const responseText = result.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!responseText) {
-    throw new Error("Empty candidate text from Gemini response");
-  }
-
-  return { ...cleanAndParseJson(responseText), _modelUsed: "Gemini 3.5 Flash [Direct Client]" };
+  throw new Error(`All Gemini models failed. Last error: ${lastErr?.message || lastErr}`);
 }
 
 // 2. Groq Direct Call
