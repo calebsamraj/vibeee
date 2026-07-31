@@ -157,6 +157,7 @@ async function callOpenRouterDirect(base64Data, mimeType, apiKey, prompt, onStat
   const url = 'https://openrouter.ai/api/v1/responses';
   
   const openRouterModels = [
+    "mistralai/mistral-medium-3-5-26-04",
     "openrouter/free", // Automates free vision routing
     "google/gemini-3.5-flash:free",
     "google/gemini-2.5-flash:free",
