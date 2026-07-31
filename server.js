@@ -401,6 +401,95 @@ async function callDeepSeek(apiKey, prompt) {
   return { ...cleanAndParseJson(responseText), _modelUsed: "DeepSeek-V3" };
 }
 
+// Mistral API Call
+async function callMistral(base64Data, mimeType, apiKey, prompt) {
+  const url = 'https://api.mistral.ai/v1/chat/completions';
+  const requestBody = {
+    model: "pixtral-12b-2409",
+    messages: [
+      {
+        role: "user",
+        content: [
+          { type: "text", text: prompt },
+          {
+            type: "image_url",
+            image_url: {
+              url: `data:${mimeType};base64,${base64Data}`
+            }
+          }
+        ]
+      }
+    ],
+    temperature: 0.7
+  };
+
+  const response = await fetchWithTimeout(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`
+    },
+    body: JSON.stringify(requestBody)
+  }, 30000);
+
+  const textContent = await response.text();
+  if (!response.ok) {
+    throw { status: response.status, message: `Mistral API returned error: ${textContent}` };
+  }
+
+  const result = JSON.parse(textContent);
+  const responseText = result.choices?.[0]?.message?.content;
+  if (!responseText) {
+    throw { status: 500, message: "Empty choices response from Mistral API" };
+  }
+
+  return { ...cleanAndParseJson(responseText), _modelUsed: "Mistral (Pixtral 12B)" };
+}
+
+// Cohere API Call
+async function callCohere(base64Data, mimeType, apiKey, prompt) {
+  const url = 'https://api.cohere.com/v2/chat';
+  const requestBody = {
+    model: "command-a-vision-07-2025",
+    messages: [
+      {
+        role: "user",
+        content: [
+          { type: "text", text: prompt },
+          {
+            type: "image_url",
+            image_url: {
+              url: `data:${mimeType};base64,${base64Data}`
+            }
+          }
+        ]
+      }
+    ]
+  };
+
+  const response = await fetchWithTimeout(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`
+    },
+    body: JSON.stringify(requestBody)
+  }, 30000);
+
+  const textContent = await response.text();
+  if (!response.ok) {
+    throw { status: response.status, message: `Cohere API returned error: ${textContent}` };
+  }
+
+  const result = JSON.parse(textContent);
+  const responseText = result.message?.content?.[0]?.text;
+  if (!responseText) {
+    throw { status: 500, message: "Empty response content from Cohere API" };
+  }
+
+  return { ...cleanAndParseJson(responseText), _modelUsed: "Cohere (Command A Vision)" };
+}
+
 // Curate endpoint
 app.post('/api/curate', async (req, res) => {
   const { image, mimeType, options } = req.body;
@@ -446,6 +535,8 @@ Ensure that your response conforms strictly to this JSON format and contains not
   const openrouterKey = process.env.OPENROUTER_API_KEY || process.env.VITE_OPENROUTER_API_KEY;
   const nvidiaKey = process.env.NVIDIA_API_KEY || process.env.VITE_NVIDIA_API_KEY;
   const deepseekKey = process.env.DEEPSEEK_API_KEY || process.env.VITE_DEEPSEEK_API_KEY;
+  const mistralKey = process.env.MISTRAL_API_KEY || process.env.VITE_MISTRAL_API_KEY;
+  const cohereKey = process.env.COHERE_API_KEY || process.env.VITE_COHERE_API_KEY;
 
   const providers = [];
   
@@ -481,6 +572,20 @@ Ensure that your response conforms strictly to this JSON format and contains not
     providers.push({
       name: "Groq Free API",
       fn: () => callGroq(image, mimeType || "image/jpeg", groqKey.trim(), systemPrompt)
+    });
+  }
+
+  if (mistralKey && mistralKey.trim()) {
+    providers.push({
+      name: "Mistral Free API",
+      fn: () => callMistral(image, mimeType || "image/jpeg", mistralKey.trim(), systemPrompt)
+    });
+  }
+
+  if (cohereKey && cohereKey.trim()) {
+    providers.push({
+      name: "Cohere Free API",
+      fn: () => callCohere(image, mimeType || "image/jpeg", cohereKey.trim(), systemPrompt)
     });
   }
 
