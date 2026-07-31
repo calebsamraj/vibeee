@@ -198,7 +198,7 @@ async function callGroq(base64Data, mimeType, apiKey, prompt) {
 
 // 3. OpenRouter Free Call
 async function callOpenRouter(base64Data, mimeType, apiKey, prompt) {
-  const url = 'https://openrouter.ai/api/v1/chat/completions';
+  const url = 'https://openrouter.ai/api/v1/responses';
   
   const openRouterModels = [
     "openrouter/free",
@@ -351,6 +351,13 @@ Ensure that your response conforms strictly to this JSON format and contains not
 
   const providers = [];
   
+  if (openrouterKey && openrouterKey.trim()) {
+    providers.push({
+      name: "OpenRouter Free API",
+      fn: () => callOpenRouter(image, mimeType || "image/jpeg", openrouterKey.trim(), systemPrompt)
+    });
+  }
+
   if (deepseekKey && deepseekKey.trim()) {
     providers.push({
       name: "DeepSeek API",
@@ -369,13 +376,6 @@ Ensure that your response conforms strictly to this JSON format and contains not
     providers.push({
       name: "Groq Free API",
       fn: () => callGroq(image, mimeType || "image/jpeg", groqKey.trim(), systemPrompt)
-    });
-  }
-
-  if (openrouterKey && openrouterKey.trim()) {
-    providers.push({
-      name: "OpenRouter Free API",
-      fn: () => callOpenRouter(image, mimeType || "image/jpeg", openrouterKey.trim(), systemPrompt)
     });
   }
 

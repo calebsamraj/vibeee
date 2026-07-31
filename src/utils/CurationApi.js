@@ -154,7 +154,7 @@ async function callGroqDirect(base64Data, mimeType, apiKey, prompt) {
 
 // 3. OpenRouter Direct Call (with model rotation fallback)
 async function callOpenRouterDirect(base64Data, mimeType, apiKey, prompt, onStatusChange) {
-  const url = 'https://openrouter.ai/api/v1/chat/completions';
+  const url = 'https://openrouter.ai/api/v1/responses';
   
   const openRouterModels = [
     "openrouter/free", // Automates free vision routing
@@ -302,6 +302,13 @@ Ensure that your response conforms strictly to this JSON format and contains not
   // Build client direct providers list
   const providers = [];
 
+  if (openrouterKey && openrouterKey.trim()) {
+    providers.push({
+      name: "OpenRouter Free API",
+      fn: () => callOpenRouterDirect(base64Data, mimeType, openrouterKey.trim(), systemPrompt, onStatusChange)
+    });
+  }
+
   if (deepseekKey && deepseekKey.trim()) {
     providers.push({
       name: "DeepSeek API",
@@ -320,13 +327,6 @@ Ensure that your response conforms strictly to this JSON format and contains not
     providers.push({
       name: "Groq Free API",
       fn: () => callGroqDirect(base64Data, mimeType, groqKey.trim(), systemPrompt)
-    });
-  }
-
-  if (openrouterKey && openrouterKey.trim()) {
-    providers.push({
-      name: "OpenRouter Free API",
-      fn: () => callOpenRouterDirect(base64Data, mimeType, openrouterKey.trim(), systemPrompt, onStatusChange)
     });
   }
 
