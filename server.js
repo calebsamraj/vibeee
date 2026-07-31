@@ -266,6 +266,51 @@ async function callOpenRouter(base64Data, mimeType, apiKey, prompt) {
   throw { status: 500, message: `All OpenRouter models failed. Last error: ${lastErr?.message || lastErr}` };
 }
 
+// Nvidia NIM Call
+async function callNvidia(base64Data, mimeType, apiKey, prompt) {
+  const url = 'https://integrate.api.nvidia.com/v1/chat/completions';
+  const requestBody = {
+    model: "meta/llama-3.2-11b-vision-instruct",
+    messages: [
+      {
+        role: "user",
+        content: [
+          { type: "text", text: prompt },
+          {
+            type: "image_url",
+            image_url: {
+              url: `data:${mimeType};base64,${base64Data}`
+            }
+          }
+        ]
+      }
+    ],
+    temperature: 0.7
+  };
+
+  const response = await fetchWithTimeout(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`
+    },
+    body: JSON.stringify(requestBody)
+  }, 30000);
+
+  const textContent = await response.text();
+  if (!response.ok) {
+    throw { status: response.status, message: `Nvidia NIM API returned error: ${textContent}` };
+  }
+
+  const result = JSON.parse(textContent);
+  const responseText = result.choices?.[0]?.message?.content;
+  if (!responseText) {
+    throw { status: 500, message: "Empty choices response from Nvidia NIM API" };
+  }
+
+  return { ...cleanAndParseJson(responseText), _modelUsed: "Nvidia NIM (Llama 3.2 Vision)" };
+}
+
 // 4. DeepSeek API Call
 async function callDeepSeek(apiKey, prompt) {
   const url = 'https://api.deepseek.com/chat/completions';
@@ -347,6 +392,7 @@ Ensure that your response conforms strictly to this JSON format and contains not
   const geminiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
   const groqKey = process.env.GROQ_API_KEY || process.env.VITE_GROQ_API_KEY;
   const openrouterKey = process.env.OPENROUTER_API_KEY || process.env.VITE_OPENROUTER_API_KEY;
+  const nvidiaKey = process.env.NVIDIA_API_KEY || process.env.VITE_NVIDIA_API_KEY;
   const deepseekKey = process.env.DEEPSEEK_API_KEY || process.env.VITE_DEEPSEEK_API_KEY;
 
   const providers = [];
@@ -355,6 +401,13 @@ Ensure that your response conforms strictly to this JSON format and contains not
     providers.push({
       name: "OpenRouter Free API",
       fn: () => callOpenRouter(image, mimeType || "image/jpeg", openrouterKey.trim(), systemPrompt)
+    });
+  }
+
+  if (nvidiaKey && nvidiaKey.trim()) {
+    providers.push({
+      name: "Nvidia NIM API",
+      fn: () => callNvidia(image, mimeType || "image/jpeg", nvidiaKey.trim(), systemPrompt)
     });
   }
 
