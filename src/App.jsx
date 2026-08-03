@@ -42,6 +42,7 @@ export default function App() {
     telugu: false
   });
   const [selectedMood, setSelectedMood] = useState('auto');
+  const [activeStep, setActiveStep] = useState(1);
   
   const [loadingStep, setLoadingStep] = useState(null); // 'curating' | null
   const [loadingStatus, setLoadingStatus] = useState('');
@@ -226,10 +227,8 @@ export default function App() {
     // Unlock audio for iOS Safari autoplay
     unlockAudio();
 
-    // Trigger analysis automatically
-    setTimeout(() => {
-      handleAnalyze(file, objectUrl);
-    }, 100);
+    // Advance to step 2 page wise!
+    setActiveStep(2);
   };
 
   const handleSelectSample = async (sample) => {
@@ -278,10 +277,8 @@ export default function App() {
       // Unlock audio for iOS Safari autoplay
       unlockAudio();
 
-      // Trigger analysis automatically
-      setTimeout(() => {
-        handleAnalyze(file, sample.url);
-      }, 100);
+      // Go to step 2 page wise!
+      setActiveStep(2);
     } catch (err) {
       console.error(err);
       showToast('Failed to load sample image. Please upload your own.', 'error');
@@ -307,6 +304,7 @@ export default function App() {
     setResults(null);
     setInterimResults(null);
     setSongMetadata({});
+    setActiveStep(1);
   };
 
   const handleAnalyze = async (overrideFile = null, overridePreview = null) => {
@@ -719,6 +717,41 @@ export default function App() {
         {/* Device Top Ambient Glow */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-[1px] bg-gradient-to-r from-transparent via-cyan-500/40 to-transparent"></div>
         
+        {/* Step Indicator Header (Only active during setup steps 1, 2, 3) */}
+        {activeStep <= 3 && !results && !loadingStep && (
+          <div className="px-8 pt-6 pb-4 flex items-center justify-between border-b border-white/5 bg-slate-950/20 select-none">
+            {[
+              { step: 1, label: "Import" },
+              { step: 2, label: "Languages" },
+              { step: 3, label: "Vibe Mood" }
+            ].map((s) => {
+              const isActive = activeStep === s.step;
+              const isCompleted = activeStep > s.step;
+              return (
+                <div key={s.step} className="flex items-center gap-2 flex-1 justify-center first:justify-start last:justify-end">
+                  <div
+                    className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black border transition-all duration-300 ${
+                      isActive 
+                        ? 'bg-gradient-to-r from-cyan-600 to-cyan-400 border-cyan-400 text-slate-950 scale-105 shadow-[0_0_12px_rgba(6,182,212,0.3)]'
+                        : isCompleted
+                          ? 'bg-cyan-500/20 border-cyan-500/40 text-cyan-400'
+                          : 'bg-slate-900 border-slate-800 text-slate-600'
+                    }`}
+                  >
+                    {isCompleted ? "✓" : s.step}
+                  </div>
+                  <span className={`text-[9px] font-black uppercase tracking-wider hidden sm:inline ${
+                    isActive ? 'text-cyan-400 text-glow-cyan' : isCompleted ? 'text-slate-400' : 'text-slate-600'
+                  }`}>
+                    {s.label}
+                  </span>
+                  {s.step < 3 && <div className="h-[1px] bg-slate-800/40 flex-1 mx-4 rounded"></div>}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
         {/* Main Header inside player */}
         <div className="px-8 pt-8 pb-4 flex flex-col sm:flex-row justify-between items-center border-b border-white/5 gap-4">
           <div className="text-center sm:text-left">
@@ -819,153 +852,243 @@ export default function App() {
               </div>
             </div>
           ) : !results ? (
-            /* Idle Upload State */
-            <div className="flex-1 flex flex-col items-center justify-center py-10 animate-slide-in">
+            /* Idle Upload State with Wizard Pages */
+            <div className="flex-1 flex flex-col items-center justify-center py-6 animate-slide-in">
               
-              {/* Soundtrack Languages selection card */}
-              <div className="w-full max-w-lg mb-6 glass-panel p-5 rounded-2xl border border-white/5 bg-slate-950/40 text-left">
-                <h3 className="text-xs font-black text-cyan-400 uppercase tracking-widest mb-3.5 flex items-center gap-1.5">
-                  <Music className="w-3.5 h-3.5" />
-                  Target Soundtrack Languages
-                </h3>
-                <div className="flex flex-wrap gap-2.5">
-                  {[
-                    { id: 'tamil', label: 'Tamil' },
-                    { id: 'english', label: 'English' },
-                    { id: 'hindi', label: 'Hindi' },
-                    { id: 'malayalam', label: 'Malayalam' },
-                    { id: 'telugu', label: 'Telugu' }
-                  ].map((lang) => {
-                    const active = selectedLanguages[lang.id];
-                    return (
-                      <button
-                        key={lang.id}
-                        onClick={() => {
-                          setSelectedLanguages(prev => {
-                            const next = { ...prev, [lang.id]: !prev[lang.id] };
-                            const values = Object.values(next);
-                            if (values.filter(Boolean).length === 0) {
-                              showToast('Please select at least one language.', 'warning');
-                              return prev;
-                            }
-                            return next;
-                          });
-                        }}
-                        className={`px-4 py-2 rounded-full border text-xs font-bold transition-all active:scale-95 cursor-pointer flex items-center gap-1.5 ${
-                          active 
-                            ? 'bg-cyan-500/10 border-cyan-500/50 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.15)]' 
-                            : 'bg-slate-900/60 border-slate-800 text-slate-500 hover:text-slate-350 hover:border-slate-700'
-                        }`}
-                      >
-                        {active && <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>}
-                        {lang.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+              {/* Step 1: Import Media Page */}
+              {activeStep === 1 && (
+                <div className="w-full flex flex-col items-center gap-6 animate-slide-in">
+                  <div
+                    ref={dragRef}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    onClick={() => !imagePreview && fileInputRef.current?.click()}
+                    className={`w-full max-w-lg border border-dashed rounded-3xl p-12 flex flex-col items-center justify-center text-center cursor-pointer transition-spring ${
+                      imagePreview 
+                        ? 'border-cyan-500/20 bg-slate-950/20' 
+                        : 'border-white/10 hover:border-cyan-500/40 bg-white/[0.01] hover:bg-cyan-500/[0.02]'
+                    } min-h-[260px] group relative`}
+                  >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => e.target.files?.[0] && handleFileChange(e.target.files[0])}
+                      className="hidden"
+                    />
 
-              {/* Vibe Mood selection card */}
-              <div className="w-full max-w-lg mb-6 glass-panel p-5 rounded-2xl border border-white/5 bg-slate-950/40 text-left">
-                <h3 className="text-xs font-black text-cyan-400 uppercase tracking-widest mb-3.5 flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-pink-400" />
-                  Vibe Mood Override
-                </h3>
-                <div className="flex flex-wrap gap-2.5">
-                  {[
-                    { id: 'auto', label: '✨ Auto (AI Vision)' },
-                    { id: 'energetic', label: '🔥 Energetic' },
-                    { id: 'chill', label: '🌊 Chill' },
-                    { id: 'sad', label: '😢 Melancholy' },
-                    { id: 'romantic', label: '💖 Romantic' },
-                    { id: 'party', label: '🎉 Party' },
-                    { id: 'dreamy', label: '🌌 Dreamy' },
-                    { id: 'dark', label: '💀 Intense' }
-                  ].map((mood) => {
-                    const active = selectedMood === mood.id;
-                    return (
-                      <button
-                        key={mood.id}
-                        onClick={() => setSelectedMood(mood.id)}
-                        className={`px-4 py-2 rounded-full border text-xs font-bold transition-all active:scale-95 cursor-pointer flex items-center gap-1.5 ${
-                          active 
-                            ? 'bg-pink-500/10 border-pink-500/50 text-pink-300 shadow-[0_0_12px_rgba(236,72,153,0.15)]' 
-                            : 'bg-slate-900/60 border-slate-800 text-slate-500 hover:text-slate-350 hover:border-slate-700'
-                        }`}
-                      >
-                        {active && <span className="w-1.5 h-1.5 rounded-full bg-pink-450 animate-pulse"></span>}
-                        {mood.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Drag Zone */}
-              <div
-                ref={dragRef}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                onClick={() => fileInputRef.current?.click()}
-                className="w-full max-w-lg border border-dashed border-white/10 hover:border-cyan-500/40 rounded-3xl p-12 flex flex-col items-center justify-center text-center cursor-pointer transition-spring bg-white/[0.01] hover:bg-cyan-500/[0.02] min-h-[300px] group"
-              >
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => e.target.files?.[0] && handleFileChange(e.target.files[0])}
-                  className="hidden"
-                />
-
-                <div className="p-5 rounded-full bg-slate-900/60 border border-white/5 text-cyan-400 group-hover:scale-105 transition-spring shadow-lg">
-                  <Upload className="w-6 h-6 animate-pulse-soft" />
-                </div>
-                
-                <h3 className="text-base font-bold text-slate-200 mt-4 tracking-tight">
-                  Upload Image for Curation
-                </h3>
-                <p className="text-xs text-slate-500 mt-1 max-w-xs leading-relaxed">
-                  Drag and drop a photo or click to open. AI will automatically analyze your look, expression, and background to recommend the perfect soundtrack.
-                </p>
-                <span className="mt-5 text-xs font-bold px-5 py-2.5 rounded-full bg-slate-900 border border-white/10 hover:border-cyan-500/30 text-slate-300 hover:text-slate-100 transition-colors">
-                  Select File
-                </span>
-              </div>
-
-              {/* Presets */}
-              <div className="w-full max-w-lg mt-8">
-                <span className="text-[10px] uppercase font-bold tracking-widest text-slate-500 block mb-3 text-center">
-                  Or load a pre-configured scenario
-                </span>
-                <div className="grid grid-cols-3 gap-3">
-                  {SAMPLE_IMAGES.map((sample) => (
-                    <button
-                      key={sample.id}
-                      onClick={() => handleSelectSample(sample)}
-                      disabled={loadingSample !== null}
-                      className="group/btn relative rounded-2xl overflow-hidden border border-white/5 hover:border-cyan-500/40 aspect-square flex flex-col justify-end p-3 transition-spring cursor-pointer shadow-lg hover:shadow-cyan-950/20"
-                    >
-                      <img 
-                        src={sample.url} 
-                        alt={sample.name} 
-                        className="absolute inset-0 object-cover w-full h-full brightness-50 group-hover/btn:scale-105 transition-all duration-700"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-transparent z-10"></div>
-                      
-                      {loadingSample === sample.id ? (
-                        <div className="absolute inset-0 flex items-center justify-center bg-slate-950/60 z-20">
-                          <RefreshCw className="w-5 h-5 text-cyan-400 animate-spin" />
+                    {imagePreview ? (
+                      <div className="w-full flex flex-col items-center gap-4 relative z-10">
+                        <div className="relative rounded-2xl overflow-hidden border border-white/10 shadow-2xl max-h-[160px] w-full flex items-center justify-center bg-black/40">
+                          <img src={imagePreview} className="object-contain max-h-[160px] w-full" alt="Uploaded Thumbnail" />
                         </div>
-                      ) : null}
-                      
-                      <span className="relative z-20 text-[10px] font-bold text-slate-200 group-hover/btn:text-cyan-300 transition-colors text-left truncate w-full">
-                        {sample.name}
+                        <div className="flex items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              fileInputRef.current?.click();
+                            }}
+                            className="px-4 py-2 bg-slate-900 border border-white/10 hover:border-cyan-500/20 hover:text-cyan-300 text-slate-300 rounded-full text-xs font-semibold transition-all active:scale-95 cursor-pointer"
+                          >
+                            Change Image
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleClearImage();
+                            }}
+                            className="px-4 py-2 bg-slate-900 border border-red-500/20 hover:bg-red-950/20 text-slate-400 hover:text-red-400 rounded-full text-xs font-semibold transition-all active:scale-95 cursor-pointer"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="p-4 rounded-full bg-slate-900/60 border border-white/5 text-cyan-400 group-hover:scale-105 transition-spring shadow-lg">
+                          <Upload className="w-6 h-6 animate-pulse-soft" />
+                        </div>
+                        <h3 className="text-base font-bold text-slate-205 mt-4 tracking-tight">
+                          Import Image Context
+                        </h3>
+                        <p className="text-xs text-slate-500 mt-1 max-w-xs leading-relaxed">
+                          Drag and drop a photo or click to browse.
+                        </p>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Preset Sample Images */}
+                  {!imagePreview && (
+                    <div className="w-full max-w-lg mt-4">
+                      <span className="text-[10px] uppercase font-bold tracking-widest text-slate-500 block mb-3 text-center">
+                        Or select a sample scene
                       </span>
+                      <div className="grid grid-cols-3 gap-3">
+                        {SAMPLE_IMAGES.map((sample) => (
+                          <button
+                            key={sample.id}
+                            onClick={() => handleSelectSample(sample)}
+                            disabled={loadingSample !== null}
+                            className="group/btn relative rounded-2xl overflow-hidden border border-white/5 hover:border-cyan-500/40 aspect-square flex flex-col justify-end p-3 transition-spring cursor-pointer shadow-lg hover:shadow-cyan-950/20"
+                          >
+                            <img 
+                              src={sample.url} 
+                              alt={sample.name} 
+                              className="absolute inset-0 object-cover w-full h-full brightness-50 group-hover/btn:scale-105 transition-all duration-700"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-transparent z-10"></div>
+                            {loadingSample === sample.id ? (
+                              <div className="absolute inset-0 flex items-center justify-center bg-slate-950/60 z-20">
+                                <RefreshCw className="w-5 h-5 text-cyan-400 animate-spin" />
+                              </div>
+                            ) : null}
+                            <span className="relative z-20 text-[10px] font-bold text-slate-200 group-hover/btn:text-cyan-300 transition-colors text-left truncate w-full">
+                              {sample.name}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {imagePreview && (
+                    <button
+                      onClick={() => setActiveStep(2)}
+                      className="w-full max-w-xs py-3 rounded-full bg-gradient-to-r from-cyan-600 to-cyan-400 text-slate-950 font-black text-xs hover:opacity-95 active:scale-95 transition-spring cursor-pointer shadow-lg shadow-cyan-600/20 flex items-center justify-center gap-1.5"
+                    >
+                      <span>Configure Soundtrack Languages</span>
+                      <span>→</span>
                     </button>
-                  ))}
+                  )}
                 </div>
-              </div>
+              )}
+
+              {/* Step 2: Language Selection Page */}
+              {activeStep === 2 && (
+                <div className="w-full flex flex-col items-center gap-6 animate-slide-in">
+                  <div className="w-full max-w-lg glass-panel p-6 rounded-3xl border border-white/5 bg-slate-950/40 text-left">
+                    <h2 className="text-sm font-black text-cyan-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                      <Music className="w-4 h-4" />
+                      Select Languages
+                    </h2>
+                    <p className="text-xs text-slate-500 mb-6 leading-relaxed">
+                      Toggle the language scopes you want the curation engine to search, verify, and select recommended tracks from.
+                    </p>
+                    <div className="flex flex-wrap gap-2.5">
+                      {[
+                        { id: 'tamil', label: 'Tamil' },
+                        { id: 'english', label: 'English' },
+                        { id: 'hindi', label: 'Hindi' },
+                        { id: 'malayalam', label: 'Malayalam' },
+                        { id: 'telugu', label: 'Telugu' }
+                      ].map((lang) => {
+                        const active = selectedLanguages[lang.id];
+                        return (
+                          <button
+                            key={lang.id}
+                            onClick={() => {
+                              setSelectedLanguages(prev => {
+                                const next = { ...prev, [lang.id]: !prev[lang.id] };
+                                const values = Object.values(next);
+                                if (values.filter(Boolean).length === 0) {
+                                  showToast('Please select at least one language.', 'warning');
+                                  return prev;
+                                }
+                                return next;
+                              });
+                            }}
+                            className={`px-5 py-2.5 rounded-full border text-xs font-bold transition-all active:scale-95 cursor-pointer flex items-center gap-1.5 ${
+                              active 
+                                ? 'bg-cyan-500/10 border-cyan-500/50 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.15)]' 
+                                : 'bg-slate-900/60 border-slate-800 text-slate-500 hover:text-slate-350 hover:border-slate-700'
+                            }`}
+                          >
+                            {active && <span className="w-1.5 h-1.5 rounded-full bg-cyan-405 animate-pulse"></span>}
+                            {lang.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4 w-full max-w-xs">
+                    <button
+                      onClick={() => setActiveStep(1)}
+                      className="flex-1 py-3 rounded-full bg-slate-900 border border-white/5 hover:border-cyan-500/20 hover:text-cyan-300 text-slate-400 font-bold text-xs active:scale-95 transition-spring cursor-pointer"
+                    >
+                      ← Back
+                    </button>
+                    <button
+                      onClick={() => setActiveStep(3)}
+                      className="flex-1 py-3 rounded-full bg-gradient-to-r from-cyan-600 to-cyan-400 text-slate-950 font-black text-xs active:scale-95 transition-spring cursor-pointer shadow-lg shadow-cyan-600/10"
+                    >
+                      Configure Mood →
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 3: Vibe Mood Selection Page */}
+              {activeStep === 3 && (
+                <div className="w-full flex flex-col items-center gap-6 animate-slide-in">
+                  <div className="w-full max-w-lg glass-panel p-6 rounded-3xl border border-white/5 bg-slate-950/40 text-left">
+                    <h2 className="text-sm font-black text-pink-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                      <Sparkles className="w-4 h-4 text-pink-400" />
+                      Set Vibe Mood
+                    </h2>
+                    <p className="text-xs text-slate-500 mb-6 leading-relaxed">
+                      Apply a mood override filter to color the recommended songs, or trust the AI vision matrices to detect look expression context.
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      {[
+                        { id: 'auto', label: '✨ Auto (AI Vision)' },
+                        { id: 'energetic', label: '🔥 Energetic' },
+                        { id: 'chill', label: '🌊 Chill' },
+                        { id: 'sad', label: '😢 Melancholy' },
+                        { id: 'romantic', label: '💖 Romantic' },
+                        { id: 'party', label: '🎉 Party' },
+                        { id: 'dreamy', label: '🌌 Dreamy' },
+                        { id: 'dark', label: '💀 Intense' }
+                      ].map((mood) => {
+                        const active = selectedMood === mood.id;
+                        return (
+                          <button
+                            key={mood.id}
+                            onClick={() => setSelectedMood(mood.id)}
+                            className={`px-4 py-3 rounded-2xl border text-xs font-bold transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2 ${
+                              active 
+                                ? 'bg-pink-500/10 border-pink-500/50 text-pink-300 shadow-[0_0_12px_rgba(236,72,153,0.15)]' 
+                                : 'bg-slate-900/60 border-slate-800 text-slate-500 hover:text-slate-350 hover:border-slate-700'
+                            }`}
+                          >
+                            {active && <span className="w-1.5 h-1.5 rounded-full bg-pink-450 animate-pulse"></span>}
+                            {mood.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4 w-full max-w-xs">
+                    <button
+                      onClick={() => setActiveStep(2)}
+                      className="flex-1 py-3 rounded-full bg-slate-900 border border-white/5 hover:border-pink-500/20 hover:text-pink-450 text-slate-400 font-bold text-xs active:scale-95 transition-spring cursor-pointer"
+                    >
+                      ← Back
+                    </button>
+                    <button
+                      onClick={() => handleAnalyze()}
+                      className="flex-1 py-3 rounded-full bg-gradient-to-r from-pink-600 via-pink-500 to-pink-400 text-slate-950 font-black text-xs active:scale-95 transition-spring cursor-pointer shadow-lg shadow-pink-500/20"
+                    >
+                      Analyze Vibe ✨
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             /* Results View */
