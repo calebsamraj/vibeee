@@ -684,7 +684,7 @@ export default function App() {
   return (
     <div className="min-h-screen flex flex-col items-center px-4 py-8 md:px-8 max-w-5xl mx-auto w-full relative">
       {/* Ambient Background */}
-      <AmbientBackground imagePreview={imagePreview} />
+      <AmbientBackground imagePreview={imagePreview} isPlaying={!!playingTrackUrl} />
 
       {/* Hidden Audio Elements for Mobile Autoplay Bypass */}
       <audio 
