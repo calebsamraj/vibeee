@@ -202,6 +202,13 @@ function verifyDeezerMatch(track, songString) {
 // Provider queries
 // ---------------------------------------------------------------------------
 
+function formatDuration(seconds) {
+  if (!seconds) return '';
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+}
+
 function standardizeItunesTrack(track) {
   const highResArtwork = track.artworkUrl100
     ? track.artworkUrl100.replace('100x100bb.jpg', '350x350bb.jpg')
@@ -219,6 +226,7 @@ function standardizeItunesTrack(track) {
     releaseYear,
     collectionName: track.collectionName || '',
     genre: track.primaryGenreName || '',
+    duration: track.trackTimeMillis ? formatDuration(track.trackTimeMillis / 1000) : '',
     provider: 'itunes',
     _trackId: track.trackId
   };
@@ -236,6 +244,7 @@ function standardizeDeezerTrack(track) {
     releaseYear: extractReleaseYear(track.release_date),
     collectionName: track.album ? track.album.title : '',
     genre: '',
+    duration: track.duration ? formatDuration(track.duration) : '',
     provider: 'deezer',
     _trackId: track.id
   };
