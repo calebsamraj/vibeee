@@ -64,6 +64,44 @@ export default function App() {
   const audioRef = useRef(null);
   const bgAudioRef = useRef(null);
 
+  const cardRef = useRef(null);
+  const [tiltStyle, setTiltStyle] = useState({});
+
+  const handleMouseMove = (e) => {
+    const card = cardRef.current;
+    if (!card) return;
+
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+
+    const rotateX = ((y - centerY) / centerY) * -5;
+    const rotateY = ((x - centerX) / centerX) * 5;
+
+    setTiltStyle({
+      transform: `perspective(1200px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`,
+      transition: 'transform 0.1s ease-out'
+    });
+
+    card.style.setProperty('--mouse-x', `${x}px`);
+    card.style.setProperty('--mouse-y', `${y}px`);
+  };
+
+  const handleMouseLeave = () => {
+    const card = cardRef.current;
+    setTiltStyle({
+      transform: 'perspective(1200px) rotateX(0deg) rotateY(0deg)',
+      transition: 'transform 0.5s cubic-bezier(0.25, 1, 0.5, 1)'
+    });
+    if (card) {
+      card.style.setProperty('--mouse-x', '-2000px');
+      card.style.setProperty('--mouse-y', '-2000px');
+    }
+  };
+
   // Trigger music emoji burst
   const triggerEmojiBurst = (e) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -712,7 +750,13 @@ export default function App() {
       </div>
 
       {/* Flagship Device Frame wrapping the entire interface */}
-      <div className="w-full max-w-4xl glass-panel rounded-[32px] overflow-hidden border border-white/10 bg-slate-950/60 shadow-[0_32px_64px_rgba(0,0,0,0.8),inset_0_1px_2px_rgba(255,255,255,0.05)] relative flex flex-col min-h-[640px] z-10">
+      <div 
+        ref={cardRef}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+        style={tiltStyle}
+        className="w-full max-w-4xl glass-panel rounded-[32px] overflow-hidden border border-white/10 bg-slate-950/60 shadow-[0_32px_64px_rgba(0,0,0,0.8),inset_0_1px_2px_rgba(255,255,255,0.05)] relative flex flex-col min-h-[640px] z-10 tilt-card-3d"
+      >
         
         {/* Device Top Ambient Glow */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-[1px] bg-gradient-to-r from-transparent via-cyan-500/40 to-transparent"></div>
@@ -1092,35 +1136,100 @@ export default function App() {
             </div>
           ) : (
             /* Results View */
-            <div className="flex-1 flex flex-col gap-8 animate-slide-in">
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
-                
-                {/* Left Side: Curated Image & Rationale */}
-                <div className="lg:col-span-5 flex flex-col gap-6">
-                  {/* Photo container */}
-                  <div className="relative rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-black/40 flex items-center justify-center max-h-[300px] group">
-                    <img 
-                      src={imagePreview} 
-                      alt="Curated Preview" 
-                      className="object-contain max-h-[300px] w-full"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-transparent to-transparent"></div>
-                    <div className="absolute bottom-4 left-4 z-10 flex flex-wrap gap-2">
-                      <span className="text-[9px] font-bold uppercase bg-cyan-500 text-slate-950 px-2.5 py-0.5 rounded-full shadow">
-                        VIBE UNLOCKED
-                      </span>
-                      {selectedMood !== 'auto' && (
-                        <span className="text-[9px] font-bold uppercase bg-pink-500 text-slate-950 px-2.5 py-0.5 rounded-full shadow">
-                          {selectedMood.toUpperCase()} MOOD
-                        </span>
+            (() => {
+              const activeSong = results?.recommendedSongs?.find(s => {
+                const songId = `${s.song}_${s.language}`;
+                const meta = songMetadata[songId];
+                return meta?.previewUrl === playingTrackUrl;
+              });
+
+              return (
+                <div className="flex-1 flex flex-col gap-8 animate-slide-in">
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+                    
+                    {/* Left Side: Curated Image & Rationale */}
+                    <div className="lg:col-span-5 flex flex-col gap-6">
+                      {/* Photo container */}
+                      <div className="relative rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-black/40 flex items-center justify-center max-h-[300px] group">
+                        <img 
+                          src={imagePreview} 
+                          alt="Curated Preview" 
+                          className="object-contain max-h-[300px] w-full"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-transparent to-transparent"></div>
+                        <div className="absolute bottom-4 left-4 z-10 flex flex-wrap gap-2">
+                          <span className="text-[9px] font-bold uppercase bg-cyan-500 text-slate-950 px-2.5 py-0.5 rounded-full shadow">
+                            VIBE UNLOCKED
+                          </span>
+                          {selectedMood !== 'auto' && (
+                            <span className="text-[9px] font-bold uppercase bg-pink-500 text-slate-950 px-2.5 py-0.5 rounded-full shadow">
+                              {selectedMood.toUpperCase()} MOOD
+                            </span>
+                          )}
+                          {results.recommendedSongs?.length > 0 && (
+                            <span className="text-[9px] font-bold uppercase bg-slate-900/80 border border-white/10 text-slate-300 px-2.5 py-0.5 rounded-full">
+                              {results.recommendedSongs[0]?.language} Vibe
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* 3D Holographic Vinyl Deck */}
+                      {playingTrackUrl && activeSong && (
+                        <div className="vinyl-deck-3d glass-panel p-6 rounded-3xl border border-cyan-500/30 bg-slate-950/70 flex flex-col items-center gap-4 relative overflow-hidden animate-slide-in select-none">
+                          <div className="absolute top-2 left-3 text-[9px] font-mono text-cyan-400 font-bold uppercase tracking-widest flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-ping"></span>
+                            HOLO-DECK DECODE
+                          </div>
+                          
+                          {/* Skeuomorphic Turntable Platter */}
+                          <div className="relative w-40 h-40 rounded-full bg-slate-900 border-4 border-slate-800 shadow-[0_12px_24px_rgba(0,0,0,0.8)] flex items-center justify-center overflow-hidden">
+                            {/* Vinyl Grooves background */}
+                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_30%,#000_31%,#080808_35%,#111_40%,#000_45%,#1a1a1a_50%,#000_55%,#222_60%,#000_65%,#2a2a2a_70%,#000_75%)] opacity-80"></div>
+                            
+                            {/* Vinyl Record body */}
+                            <div className="absolute inset-2 rounded-full border border-white/5 animate-spin-slow" style={{ animationDuration: '6s', animationPlayState: playingTrackUrl ? 'running' : 'paused' }}>
+                              {/* Centered Artwork Label */}
+                              <div className="absolute inset-[30%] rounded-full bg-slate-800 border-2 border-slate-950 overflow-hidden flex items-center justify-center shadow-inner">
+                                {songMetadata[`${activeSong.song}_${activeSong.language}`]?.artworkUrl ? (
+                                  <img 
+                                    src={songMetadata[`${activeSong.song}_${activeSong.language}`].artworkUrl} 
+                                    className="w-full h-full object-cover animate-spin-slow" 
+                                    style={{ animationDuration: '10s' }}
+                                    alt="Record label" 
+                                  />
+                                ) : (
+                                  <Music className="w-6 h-6 text-cyan-400" />
+                                )}
+                              </div>
+                              {/* Center hole spindle shadow */}
+                              <div className="absolute inset-[44%] rounded-full bg-slate-950 border border-white/10 shadow-lg flex items-center justify-center">
+                                <div className="w-2.5 h-2.5 rounded-full bg-slate-900 border border-slate-600/30"></div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Tone arm overlay */}
+                          <div 
+                            className="absolute right-8 top-12 w-20 h-28 pointer-events-none origin-[70px_15px] transition-transform duration-1000"
+                            style={{
+                              transform: playingTrackUrl ? 'rotate(18deg)' : 'rotate(-12deg)',
+                            }}
+                          >
+                            <div className="absolute right-[65px] top-[10px] w-6 h-6 rounded-full bg-slate-800 border border-slate-700 shadow flex items-center justify-center">
+                              <div className="w-3.5 h-3.5 rounded-full bg-slate-950 border border-slate-700/50"></div>
+                            </div>
+                            <div className="absolute right-[74px] top-[24px] w-1 h-20 bg-slate-500 rounded shadow"></div>
+                            <div className="absolute right-[65px] top-[100px] w-3 h-5 bg-cyan-500 rounded-sm border border-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.4)]"></div>
+                          </div>
+
+                          {/* Now Playing info */}
+                          <div className="text-center w-full px-4">
+                            <h4 className="text-xs font-bold text-slate-100 truncate w-full">{activeSong.song.split(' - ')[0]}</h4>
+                            <p className="text-[10px] text-cyan-400 font-semibold truncate w-full mt-0.5">{activeSong.song.split(' - ')[1] || 'Unknown Artist'}</p>
+                          </div>
+                        </div>
                       )}
-                      {results.recommendedSongs?.length > 0 && (
-                        <span className="text-[9px] font-bold uppercase bg-slate-900/80 border border-white/10 text-slate-300 px-2.5 py-0.5 rounded-full">
-                          {results.recommendedSongs[0]?.language} Vibe
-                        </span>
-                      )}
-                    </div>
-                  </div>
 
                   {/* Look description */}
                   {results.lookDescription && (
@@ -1296,6 +1405,8 @@ export default function App() {
 
               </div>
             </div>
+              );
+            })()
           )}
         </div>
 

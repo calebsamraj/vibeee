@@ -161,3 +161,46 @@
   transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* Interactive cursor follow spotlight effect for glass cards */
+.glass-panel {
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    600px circle at var(--mouse-x, 0px) var(--mouse-y, 0px),
+    rgba(255, 255, 255, 0.05),
+    transparent 40%
+  );
+  z-index: 1;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+
+/* 3D skeuomorphic record player card */
+.vinyl-deck-3d {
+  transform: perspective(1000px) rotateX(15deg) rotateY(-8deg);
+  transform-style: preserve-3d;
+  box-shadow: 
+    -4px 4px 0px rgba(6, 182, 212, 0.25),
+    -8px 8px 16px rgba(0, 0, 0, 0.6);
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.vinyl-deck-3d:hover {
+  transform: perspective(1000px) rotateX(10deg) rotateY(-5deg) translateZ(10px);
+  box-shadow: 
+    -6px 6px 0px rgba(6, 182, 212, 0.35),
+    -12px 12px 24px rgba(0, 0, 0, 0.7);
+}
+
+/* 3D tilt tracking effect */
+.tilt-card-3d {
+  transition: transform 0.1s ease-out;
+  transform-style: preserve-3d;
+}
+
