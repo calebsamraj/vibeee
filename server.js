@@ -513,6 +513,7 @@ app.post('/api/curate', async (req, res) => {
 4. A list of 20 to 25 recommended songs (Format: "Song Title - Artist") that specifically match the background vibe, visual atmosphere, setting, pose, clothing look, facial expressions, lighting, colors, and aesthetic tone of the image.
    CRITICAL RECOMMENDATION RULES:
    - ${langConstraint}
+   - For Tamil songs, you MUST ONLY recommend tracks released in 1990 or later. Absolutely no pre-1990 Tamil songs are allowed. Favor and recommend a higher proportion of Tamil songs released in the 2000s, 2010s, and current hits (2000 to present day).
    - Include Christian worship/gospel songs (only when appropriate for the image, such as if it shows a serene, spiritual setting, church, cross, or peaceful grateful mood).
    - Prioritize latest trending songs while also including timeless classics that perfectly fit the photo.
    - You must rank them by confidence score (0 to 100).
