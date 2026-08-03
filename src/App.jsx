@@ -41,6 +41,7 @@ export default function App() {
     malayalam: true,
     telugu: false
   });
+  const [selectedMood, setSelectedMood] = useState('auto');
   
   const [loadingStep, setLoadingStep] = useState(null); // 'curating' | null
   const [loadingStatus, setLoadingStatus] = useState('');
@@ -192,8 +193,9 @@ export default function App() {
       .map(([lang, _]) => lang)
       .sort()
       .join('-');
-    if (sampleId) return `vibelens_cache_sample_${sampleId}_langs_${activeLangsKey}`;
-    if (file && file.name) return `vibelens_cache_upload_${file.name}_${file.size}_${file.lastModified}_langs_${activeLangsKey}`;
+    const moodKey = selectedMood;
+    if (sampleId) return `vibelens_cache_sample_${sampleId}_langs_${activeLangsKey}_mood_${moodKey}`;
+    if (file && file.name) return `vibelens_cache_upload_${file.name}_${file.size}_${file.lastModified}_langs_${activeLangsKey}_mood_${moodKey}`;
     return null;
   };
 
@@ -353,7 +355,8 @@ export default function App() {
       const curationOptions = {
         captionsEnglish: true,
         captionsTamil: true,
-        selectedLanguages: selectedLanguages
+        selectedLanguages: selectedLanguages,
+        selectedMood: selectedMood
       };
       const curatedData = await queryWithFallback(fileToAnalyze, '', curationOptions, setLoadingStatus);
       setInterimResults(curatedData);
@@ -862,6 +865,42 @@ export default function App() {
                 </div>
               </div>
 
+              {/* Vibe Mood selection card */}
+              <div className="w-full max-w-lg mb-6 glass-panel p-5 rounded-2xl border border-white/5 bg-slate-950/40 text-left">
+                <h3 className="text-xs font-black text-cyan-400 uppercase tracking-widest mb-3.5 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-pink-400" />
+                  Vibe Mood Override
+                </h3>
+                <div className="flex flex-wrap gap-2.5">
+                  {[
+                    { id: 'auto', label: '✨ Auto (AI Vision)' },
+                    { id: 'energetic', label: '🔥 Energetic' },
+                    { id: 'chill', label: '🌊 Chill' },
+                    { id: 'sad', label: '😢 Melancholy' },
+                    { id: 'romantic', label: '💖 Romantic' },
+                    { id: 'party', label: '🎉 Party' },
+                    { id: 'dreamy', label: '🌌 Dreamy' },
+                    { id: 'dark', label: '💀 Intense' }
+                  ].map((mood) => {
+                    const active = selectedMood === mood.id;
+                    return (
+                      <button
+                        key={mood.id}
+                        onClick={() => setSelectedMood(mood.id)}
+                        className={`px-4 py-2 rounded-full border text-xs font-bold transition-all active:scale-95 cursor-pointer flex items-center gap-1.5 ${
+                          active 
+                            ? 'bg-pink-500/10 border-pink-500/50 text-pink-300 shadow-[0_0_12px_rgba(236,72,153,0.15)]' 
+                            : 'bg-slate-900/60 border-slate-800 text-slate-500 hover:text-slate-350 hover:border-slate-700'
+                        }`}
+                      >
+                        {active && <span className="w-1.5 h-1.5 rounded-full bg-pink-450 animate-pulse"></span>}
+                        {mood.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Drag Zone */}
               <div
                 ref={dragRef}
@@ -947,6 +986,11 @@ export default function App() {
                       <span className="text-[9px] font-bold uppercase bg-cyan-500 text-slate-950 px-2.5 py-0.5 rounded-full shadow">
                         VIBE UNLOCKED
                       </span>
+                      {selectedMood !== 'auto' && (
+                        <span className="text-[9px] font-bold uppercase bg-pink-500 text-slate-950 px-2.5 py-0.5 rounded-full shadow">
+                          {selectedMood.toUpperCase()} MOOD
+                        </span>
+                      )}
                       {results.recommendedSongs?.length > 0 && (
                         <span className="text-[9px] font-bold uppercase bg-slate-900/80 border border-white/10 text-slate-300 px-2.5 py-0.5 rounded-full">
                           {results.recommendedSongs[0]?.language} Vibe
