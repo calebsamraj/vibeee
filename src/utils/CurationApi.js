@@ -447,13 +447,22 @@ async function callCohereDirect(base64Data, mimeType, apiKey, prompt) {
 
 // Client-side Direct Fallback router
 async function runClientSideFallback(base64Data, mimeType, options, onStatusChange) {
+  const activeLangs = Object.entries(options?.selectedLanguages || {})
+    .filter(([_, active]) => active)
+    .map(([lang, _]) => lang.charAt(0).toUpperCase() + lang.slice(1))
+    .join(', ');
+
+  const langConstraint = activeLangs 
+    ? `Recommend songs ONLY in these languages: ${activeLangs}. Do not suggest songs from other languages.` 
+    : 'Recommend songs across these languages: Tamil, English, Hindi, Malayalam, and Telugu.';
+
   const systemPrompt = `You are a social media and music curation expert. Your task is to analyze the provided image and generate:
 1. Three highly creative, engaging, and different styles of social media captions/quotes in English.
 2. Three highly creative, engaging, and different styles of social media captions/quotes in Tamil.
 3. 5-8 relevant, trending hashtags (including standard ones and some specific to the vibe of the image).
 4. A list of 20 to 25 recommended songs (Format: "Song Title - Artist") that specifically match the background vibe, visual atmosphere, setting, pose, clothing look, facial expressions, lighting, colors, and aesthetic tone of the image.
    CRITICAL RECOMMENDATION RULES:
-   - Recommend songs across these languages: Tamil, English, Hindi, Malayalam, and Telugu.
+   - ${langConstraint}
    - Include Christian worship/gospel songs (only when appropriate for the image, such as if it shows a serene, spiritual setting, church, cross, or peaceful grateful mood).
    - Prioritize latest trending songs while also including timeless classics that perfectly fit the photo.
    - You must rank them by confidence score (0 to 100).

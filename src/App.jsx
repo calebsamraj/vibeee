@@ -34,6 +34,13 @@ export default function App() {
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
   const [loadingSample, setLoadingSample] = useState(null);
+  const [selectedLanguages, setSelectedLanguages] = useState({
+    tamil: true,
+    english: true,
+    hindi: true,
+    malayalam: true,
+    telugu: false
+  });
   
   const [loadingStep, setLoadingStep] = useState(null); // 'curating' | null
   const [loadingStatus, setLoadingStatus] = useState('');
@@ -180,8 +187,13 @@ export default function App() {
   };
 
   const getCacheKey = (file, sampleId) => {
-    if (sampleId) return `vibelens_cache_sample_${sampleId}`;
-    if (file && file.name) return `vibelens_cache_upload_${file.name}_${file.size}_${file.lastModified}`;
+    const activeLangsKey = Object.entries(selectedLanguages)
+      .filter(([_, active]) => active)
+      .map(([lang, _]) => lang)
+      .sort()
+      .join('-');
+    if (sampleId) return `vibelens_cache_sample_${sampleId}_langs_${activeLangsKey}`;
+    if (file && file.name) return `vibelens_cache_upload_${file.name}_${file.size}_${file.lastModified}_langs_${activeLangsKey}`;
     return null;
   };
 
@@ -338,16 +350,12 @@ export default function App() {
     }
     
     try {
-      // Pass a dummy options object to maintain wrapper compatibility
-      const dummyOptions = {
+      const curationOptions = {
         captionsEnglish: true,
         captionsTamil: true,
-        songsTamil: true,
-        songsEnglish: true,
-        songsHindi: true,
-        songsTamilChristian: true
+        selectedLanguages: selectedLanguages
       };
-      const curatedData = await queryWithFallback(fileToAnalyze, '', dummyOptions, setLoadingStatus);
+      const curatedData = await queryWithFallback(fileToAnalyze, '', curationOptions, setLoadingStatus);
       setInterimResults(curatedData);
       
       const metadataDict = {};
@@ -811,6 +819,49 @@ export default function App() {
             /* Idle Upload State */
             <div className="flex-1 flex flex-col items-center justify-center py-10 animate-slide-in">
               
+              {/* Soundtrack Languages selection card */}
+              <div className="w-full max-w-lg mb-6 glass-panel p-5 rounded-2xl border border-white/5 bg-slate-950/40 text-left">
+                <h3 className="text-xs font-black text-cyan-400 uppercase tracking-widest mb-3.5 flex items-center gap-1.5">
+                  <Music className="w-3.5 h-3.5" />
+                  Target Soundtrack Languages
+                </h3>
+                <div className="flex flex-wrap gap-2.5">
+                  {[
+                    { id: 'tamil', label: 'Tamil' },
+                    { id: 'english', label: 'English' },
+                    { id: 'hindi', label: 'Hindi' },
+                    { id: 'malayalam', label: 'Malayalam' },
+                    { id: 'telugu', label: 'Telugu' }
+                  ].map((lang) => {
+                    const active = selectedLanguages[lang.id];
+                    return (
+                      <button
+                        key={lang.id}
+                        onClick={() => {
+                          setSelectedLanguages(prev => {
+                            const next = { ...prev, [lang.id]: !prev[lang.id] };
+                            const values = Object.values(next);
+                            if (values.filter(Boolean).length === 0) {
+                              showToast('Please select at least one language.', 'warning');
+                              return prev;
+                            }
+                            return next;
+                          });
+                        }}
+                        className={`px-4 py-2 rounded-full border text-xs font-bold transition-all active:scale-95 cursor-pointer flex items-center gap-1.5 ${
+                          active 
+                            ? 'bg-cyan-500/10 border-cyan-500/50 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.15)]' 
+                            : 'bg-slate-900/60 border-slate-800 text-slate-500 hover:text-slate-350 hover:border-slate-700'
+                        }`}
+                      >
+                        {active && <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>}
+                        {lang.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Drag Zone */}
               <div
                 ref={dragRef}
